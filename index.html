@@ -1,73 +1,45 @@
 <!--
-Nazwa: Dashboard temperatury PRO z analizą, forecastem rozszerzonym, overlay dni oraz wykresami Moliera 2D i 3D
+Nazwa: Strona z wykresem Moliera 3D z płaszczyznami RH
 Cel:
-- Wyświetlanie danych temperatury z ThingSpeak w formie aplikacyjnego dashboardu.
-- Ujednolicenie czasu danych z ThingSpeak i Open-Meteo.
-- Zachowanie aktualnego widoku wykresów przy odświeżaniu danych.
-- Dodanie linii modelu / forecastu temperatury dla Lublina od początku wybranego zakresu
-  aż w przyszłość, aby można było porównać rozbieżności względem pomiarów.
-- Dodanie punktu rosy, statystyk dla sensora i dla Lublina, wykresu overlay dni,
-  uproszczonego wykresu Moliera 2D oraz dodatkowego wykresu Moliera 3D na dole strony.
+- Wyświetlanie uproszczonego wykresu Moliera w 3D.
+- Zamiana dawnych linii RH na powierzchnie rozciągnięte w osi czasu.
+- Pokazanie rzeczywistej trajektorii punktu meteo dla Lublina.
+- Ustawienie wizualnej szerokości osi entalpii w bardziej zrównoważony sposób względem pozostałych osi.
 Użycie:
-- Podmień aktualny plik index.html w repozytorium GitHub Pages.
-- Otwórz stronę w przeglądarce.
-- Wybieraj zakres czasu przyciskami, suwakiem albo polami od-do.
-- AUTO odświeża dane bez resetowania aktualnego widoku wykresów.
+- Wklej plik jako index.html albo uruchom w podglądzie kanwy.
 Uruchomienie:
-- GitHub Pages: po zapisaniu zmian i odczekaniu chwili strona będzie dostępna
-  pod adresem: https://mustang3k7.github.io
-- Lokalnie: można otworzyć plik index.html bezpośrednio w przeglądarce.
+- Lokalnie: otwarcie pliku index.html w przeglądarce.
+- GitHub Pages: po wrzuceniu pliku do repozytorium.
 Wymagania:
 - Przeglądarka z obsługą JavaScript
 - Dostęp do Internetu
-- Kanał ThingSpeak z danymi temperatury
+- Dostęp do CDN Plotly i API Open-Meteo
 Wynik:
-- Interaktywny wykres temperatury sensora
-- Temperatura zewnętrzna dla Lublina na tej samej osi czasu
-- Linia modelu / forecastu temperatury dla Lublina od początku zakresu do przyszłości
-- Histogram temperatury sensora
-- Osobny wykres meteo: wilgotność względna, bezwzględna, punkt rosy i ciśnienie
-- Wykres overlay dni dla sensora i Lublina
-- Uproszczony wykres Moliera 2D z aktualnym punktem meteo
-- Wykres Moliera 3D z powierzchniami RH i trajektorią danych godzinowych
-- Panel analityczny ze wskaźnikami i godzinami wschodu / zachodu słońca
+- Jedna strona zawierająca tylko wykres Moliera 3D
+- Oś X: temperatura sucha
+- Oś Y: czas
+- Oś Z: entalpia
+- Powierzchnie odpowiadające poziomom RH
+- Trajektoria rzeczywistych danych pogodowych
+- Wyróżniony aktualny punkt
 Zatrzymanie:
-- Wyłączenie automatycznego odświeżania lub zamknięcie strony
+- Zamknięcie strony lub odświeżenia przeglądarki
 Uwagi:
-- Dane z ThingSpeak są tylko odczytywane.
-- Dla kanału prywatnego używany jest READ_API_KEY.
-- ThingSpeak ma limit 8000 rekordów na pojedyncze żądanie, dlatego dłuższe zakresy
-  są pobierane partiami w oknach dobowych.
-- Open-Meteo dla danych historycznych i forecastu godzinowego jest pobierane w GMT,
-  aby uniknąć rozjazdu czasu z UTC z ThingSpeak.
-- Wschód i zachód słońca są pobierane osobno w strefie Europe/Warsaw, czyli lokalnie
-  dla Polski.
-- Wszystkie wykresy mają domyślnie aktywny tryb pan, ale użytkownik może go przełączyć
-  paskiem narzędzi Plotly.
-- Pasek narzędzi Plotly jest stale widoczny.
-- Oś temperatury dopasowuje się automatycznie do min/max pobranych danych.
-- Wilgotność bezwzględna, punkt rosy oraz linie pomocnicze na wykresach Moliera są
-  liczone po stronie strony na podstawie standardowych przybliżeń psychrometrycznych.
+- Wykres jest uproszczony i poglądowy.
+- Obliczenia psychrometryczne są przybliżone.
+- Powierzchnie RH są stałe w czasie i są rozciągnięte po osi czasu dla czytelności przestrzennej.
 Data: 2026-04-08
 Status: narzędzie
 
 Założenia i interpretacja działania:
-- ESP zapisuje dane do ThingSpeak.
-- Strona pełni rolę interfejsu analitycznego.
-- ThingSpeak zwraca created_at w UTC.
-- Open-Meteo dla danych godzinowych jest pobierane w GMT, a serie są parsowane
-  do obiektów Date, aby były zgodne na jednej osi czasu.
-- Dla długich okresów ThingSpeak jest odczytywany partiami (dzień po dniu), aby
-  obejść limit 8000 punktów na pojedyncze żądanie.
-- Widok wykresu ma być zachowany przy odświeżaniu danych, a resetować się tylko
-  przy świadomej zmianie zakresu czasu przez użytkownika.
-- Linia modelu / forecastu Lublina pokazuje aktualny model pogodowy także dla części
-  przeszłej wybranego zakresu, więc służy do porównania modelu z danymi, a nie do
-  odtwarzania historycznych prognoz z dawnych dni.
-- Wykres Moliera 2D jest uproszczonym wykresem psychrometrycznym dla ciśnienia
-  zbliżonego do atmosferycznego; ma charakter praktyczny i poglądowy.
-- Wykres Moliera 3D rozciąga powierzchnie RH po osi czasu, aby pokazać przebieg
-  rzeczywistych danych pogodowych na tle przestrzennym.
+- Strona ma zawierać wyłącznie jeden wykres.
+- Dawne linie RH mają zostać zamienione na powierzchnie w 3D.
+- Temperatura sucha ma być osią X, a sama oś ma mieć kierunek od 10 do -40 bez odwracania danych wejściowych.
+- Czas ma być osią Y.
+- Entalpia ma być osią Z.
+- Powierzchnie RH są budowane przez przeciągnięcie charakterystyki psychrometrycznej po osi czasu.
+- Trajektoria rzeczywistych danych jest rysowana na tle tych powierzchni.
+- Oś entalpii ma być wizualnie zwężona tylko umiarkowanie, tak aby wykres pozostał czytelny i nie ucinał użytecznego zakresu.
 -->
 
 <!DOCTYPE html>
@@ -75,7 +47,7 @@ Założenia i interpretacja działania:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard temperatury PRO</title>
+  <title>Wykres Moliera 3D</title>
 
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
@@ -86,13 +58,8 @@ Założenia i interpretacja działania:
       --border: #243146;
       --text: #e5edf8;
       --muted: #9fb0c8;
-      --accent: #4f8cff;
-      --accent-2: #22c55e;
-      --accent-3: #f59e0b;
-      --accent-4: #38bdf8;
-      --accent-5: #f472b6;
-      --warn: #f59e0b;
-      --danger: #ef4444;
+      --accent: #f472b6;
+      --accent2: #4f8cff;
       --shadow: rgba(0, 0, 0, 0.28);
     }
 
@@ -101,78 +68,46 @@ Założenia i interpretacja działania:
     }
 
     html, body {
-      margin: 0;
       padding: 0;
-      background:
-        radial-gradient(circle at top right, #1a2a4a 0%, transparent 28%),
-        linear-gradient(180deg, var(--bg) 0%, #08101d 100%);
-      color: var(--text);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      min-height: 100%;
-    }
-
-    body {
-      padding: 12px;
-    }
-
-    .dashboard {
-      display: grid;
-      gap: 12px;
-      min-height: calc(100vh - 24px);
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
     }
 
     .card {
+      width: 100vw;
+      height: 100vh;
+      max-width: none;
+      margin: 0;
       background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(11, 18, 32, 0.98));
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 0;
       box-shadow: 0 12px 28px var(--shadow);
-    }
-
-    .top-controls {
-      padding: 12px;
+      padding: 8px 10px;
       display: grid;
-      gap: 10px;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 4px;
+      overflow: hidden;
     }
 
-    .row {
+    .head {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
       justify-content: space-between;
-    }
-
-    .row-left, .row-right {
-      display: flex;
+      gap: 10px;
+      align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
+      margin-bottom: 0;
     }
 
-    .btn, .select, .dt-input {
-      border: 1px solid var(--border);
-      background: #121b2c;
-      color: var(--text);
-      border-radius: 10px;
-      padding: 9px 12px;
-      cursor: pointer;
-      font-size: 14px;
-      min-height: 40px;
+    .title {
+      font-size: 18px;
+      font-weight: 700;
     }
 
-    .btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: white;
-    }
-
-    .toggle-wrap {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+    .subtitle {
       color: var(--muted);
-      font-size: 14px;
-      padding: 0 4px;
+      font-size: 12px;
+      margin-top: 2px;
     }
 
     .status {
@@ -181,959 +116,218 @@ Założenia i interpretacja działania:
       white-space: nowrap;
     }
 
-    .slider-wrap {
-      display: grid;
-      gap: 8px;
-    }
-
-    .slider-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .range-slider {
-      width: 100%;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(10, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    @media (max-width: 1700px) {
-      .summary-grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 950px) {
-      .summary-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 520px) {
-      .summary-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .metric-card {
-      padding: 14px;
-    }
-
-    .metric-label {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .metric-value {
-      font-size: clamp(20px, 2.2vw, 30px);
-      font-weight: 800;
-      line-height: 1.05;
-    }
-
-    .metric-note {
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1.7fr 1fr;
-      gap: 12px;
-      align-items: stretch;
-    }
-
-    @media (max-width: 1280px) {
-      .main-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .chart-card, .side-card {
-      padding: 10px;
-    }
-
-    .chart-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: center;
-      padding: 4px 6px 10px 6px;
-      flex-wrap: wrap;
-    }
-
-    .chart-title {
-      font-size: 17px;
-      font-weight: 700;
-    }
-
-    .chart-subtitle {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .stack {
-      display: grid;
-      gap: 12px;
-      height: 100%;
-      grid-template-columns: 1fr 1fr;
-    }
-
-    @media (max-width: 700px) {
-      .stack {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    #mainChart {
-      width: 100%;
-      height: min(58vh, 620px);
-      min-height: 420px;
-    }
-
-    #histChart, #meteoChart {
-      width: 100%;
-      height: min(40vh, 430px);
-      min-height: 320px;
-    }
-
-    #overlayChart, #mollierChart {
-      width: 100%;
-      height: min(82vh, 920px);
-      min-height: 620px;
-    }
-
     #mollier3dChart {
       width: 100%;
-      height: min(95vh, 1080px);
-      min-height: 720px;
+      height: 100%;
+      min-height: 0;
+      min-width: 0;
     }
 
-    .analysis-box {
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: rgba(255,255,255,0.02);
-    }
-
-    .analysis-title {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .analysis-value {
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .analysis-sub {
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    .overlay-controls {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .info-line {
-      margin-top: 2px;
+    .info {
+      margin-top: 0;
       color: var(--muted);
       font-size: 12px;
-      line-height: 1.3;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-
-    .up { color: var(--warn); }
-    .down { color: var(--accent-2); }
-    .flat { color: var(--muted); }
   </style>
 </head>
 <body>
-
-  <div class="dashboard">
-    <section class="card top-controls">
-      <div class="row">
-        <div class="row-left">
-          <button class="btn active" data-hours="1">1 h</button>
-          <button class="btn" data-hours="3">3 h</button>
-          <button class="btn" data-hours="6">6 h</button>
-          <button class="btn" data-hours="12">12 h</button>
-          <button class="btn" data-hours="24">24 h</button>
-          <button class="btn" data-hours="72">3 dni</button>
-          <button class="btn" data-hours="168">7 dni</button>
-        </div>
-
-        <div class="row-right">
-          <label class="toggle-wrap">
-            <span>AUTO</span>
-            <input id="autoToggle" type="checkbox" checked />
-          </label>
-
-          <select id="intervalSelect" class="select">
-            <option value="10">10 s</option>
-            <option value="20" selected>20 s</option>
-            <option value="30">30 s</option>
-            <option value="60">60 s</option>
-          </select>
-
-          <button id="refreshBtn" class="btn">Odśwież</button>
-          <div id="status" class="status">Start...</div>
-        </div>
+  <section class="card">
+    <div class="head">
+      <div>
+        <div class="title">Wykres Moliera 3D</div>
+        <div class="subtitle">X = temperatura sucha, Y = czas, Z = entalpia</div>
       </div>
+      <div id="status" class="status">Start...</div>
+    </div>
 
-      <div class="slider-wrap">
-        <div class="slider-head">
-          <div>Zakres czasu suwakiem</div>
-          <div id="sliderHoursValue">1 h (0.04 dni)</div>
-        </div>
-        <input id="hoursSlider" class="range-slider" type="range" min="1" max="720" step="1" value="1" />
-      </div>
+    <div id="mollier3dChart"></div>
 
-      <div class="row">
-        <div class="row-left">
-          <label for="startDate">Od:</label>
-          <input id="startDate" class="dt-input" type="datetime-local" />
-          <label for="endDate">Do:</label>
-          <input id="endDate" class="dt-input" type="datetime-local" />
-          <button id="applyRangeBtn" class="btn">Zastosuj okres</button>
-          <button id="resetRangeBtn" class="btn">Wróć do szybkiego zakresu</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="summary-grid">
-      <div class="card metric-card"><div class="metric-label">Sensor teraz</div><div id="currentTemp" class="metric-value">--.-- °C</div><div id="lastTime" class="metric-note">Ostatni punkt: —</div></div>
-      <div class="card metric-card"><div class="metric-label">Lublin teraz</div><div id="outsideTemp" class="metric-value">--.-- °C</div><div id="outsideInfo" class="metric-note">Dane zewnętrzne: —</div></div>
-      <div class="card metric-card"><div class="metric-label">Punkt rosy</div><div id="outsideDewPoint" class="metric-value">--.-- °C</div><div class="metric-note">Wyliczony z temperatury i RH</div></div>
-      <div class="card metric-card"><div class="metric-label">Wilgotność względna</div><div id="outsideRH" class="metric-value">--.-- %</div><div class="metric-note">Dane pogodowe dla Lublina</div></div>
-      <div class="card metric-card"><div class="metric-label">Wilgotność bezwzględna</div><div id="outsideAH" class="metric-value">--.-- g/m³</div><div class="metric-note">Wyliczona z temperatury i RH</div></div>
-      <div class="card metric-card"><div class="metric-label">Ciśnienie</div><div id="outsidePressure" class="metric-value">--.-- hPa</div><div class="metric-note">Ciśnienie zredukowane do poziomu morza</div></div>
-      <div class="card metric-card"><div class="metric-label">Wschód słońca</div><div id="sunriseValue" class="metric-value">--:--</div><div class="metric-note">Lublin, czas lokalny Polski</div></div>
-      <div class="card metric-card"><div class="metric-label">Zachód słońca</div><div id="sunsetValue" class="metric-value">--:--</div><div class="metric-note">Lublin, czas lokalny Polski</div></div>
-      <div class="card metric-card"><div class="metric-label">Ocena warunków</div><div id="comfortValue" class="metric-value">Brak danych</div><div id="comfortSub" class="metric-note">Panel pokaże orientacyjną ocenę po pobraniu danych.</div></div>
-      <div class="card metric-card"><div class="metric-label">Liczba punktów</div><div id="pointCountsSummary" class="metric-value">S: -- | L: --</div><div class="metric-note">S = sensor, L = Lublin</div></div>
-    </section>
-
-    <section class="main-grid">
-      <section class="card chart-card">
-        <div class="chart-head">
-          <div>
-            <div class="chart-title">Temperatura: sensor + Lublin + model</div>
-            <div class="chart-subtitle">Linia modelu Lublina od początku zakresu aż w przyszłość</div>
-          </div>
-        </div>
-        <div id="mainChart"></div>
-      </section>
-
-      <section class="card side-card">
-        <div class="stack">
-          <div class="analysis-box"><div class="analysis-title">Sensor: minimum</div><div id="sensorMin" class="analysis-value">--</div><div class="analysis-sub">Najniższa wartość sensora w zakresie</div></div>
-          <div class="analysis-box"><div class="analysis-title">Lublin: minimum</div><div id="lublinMin" class="analysis-value">--</div><div class="analysis-sub">Najniższa temperatura zewnętrzna w zakresie</div></div>
-          <div class="analysis-box"><div class="analysis-title">Sensor: maksimum</div><div id="sensorMax" class="analysis-value">--</div><div class="analysis-sub">Najwyższa wartość sensora w zakresie</div></div>
-          <div class="analysis-box"><div class="analysis-title">Lublin: maksimum</div><div id="lublinMax" class="analysis-value">--</div><div class="analysis-sub">Najwyższa temperatura zewnętrzna w zakresie</div></div>
-          <div class="analysis-box"><div class="analysis-title">Sensor: średnia / amplituda</div><div id="sensorAvg" class="analysis-value">--</div><div id="sensorAmplitude" class="analysis-sub">--</div></div>
-          <div class="analysis-box"><div class="analysis-title">Lublin: średnia / amplituda</div><div id="lublinAvg" class="analysis-value">--</div><div id="lublinAmplitude" class="analysis-sub">--</div></div>
-          <div class="analysis-box"><div class="analysis-title">Sensor: trend</div><div id="sensorTrend" class="analysis-value">--</div><div id="sensorTrendNote" class="analysis-sub">Brak danych.</div></div>
-          <div class="analysis-box"><div class="analysis-title">Lublin: trend</div><div id="lublinTrend" class="analysis-value">--</div><div id="lublinTrendNote" class="analysis-sub">Brak danych.</div></div>
-          <div class="analysis-box"><div class="analysis-title">Punkty sensora</div><div id="sensorPointCount" class="analysis-value">--</div><div class="analysis-sub">Punkty po przetworzeniu do wykresu</div></div>
-          <div class="analysis-box"><div class="analysis-title">Punkty Lublina</div><div id="lublinPointCount" class="analysis-value">--</div><div class="analysis-sub">Punkty historyczne meteo w zakresie</div></div>
-        </div>
-      </section>
-    </section>
-
-    <section class="main-grid">
-      <section class="card chart-card"><div class="chart-head"><div><div class="chart-title">Histogram temperatury sensora</div><div class="chart-subtitle">Rozkład wartości dla tego samego okresu</div></div></div><div id="histChart"></div></section>
-      <section class="card chart-card"><div class="chart-head"><div><div class="chart-title">Meteo Lublin</div><div class="chart-subtitle">RH, AH, punkt rosy i ciśnienie</div></div></div><div id="meteoChart"></div></section>
-    </section>
-
-    <section class="main-grid">
-      <section class="card chart-card"><div class="chart-head"><div><div class="chart-title">Overlay dni: sensor + Lublin</div><div class="chart-subtitle">Porównanie przebiegów dobowych</div></div><div class="overlay-controls"><label for="overlayDaysSelect">Liczba dni:</label><select id="overlayDaysSelect" class="select"><option value="2">2</option><option value="3" selected>3</option><option value="5">5</option><option value="7">7</option></select></div></div><div id="overlayChart"></div></section>
-      <section class="card chart-card"><div class="chart-head"><div><div class="chart-title">Wykres Moliera 2D</div><div class="chart-subtitle">Aktualny punkt meteo dla Lublina</div></div></div><div id="mollierChart"></div></section>
-    </section>
-
-    <section class="card chart-card">
-      <div class="chart-head">
-        <div>
-          <div class="chart-title">Wykres Moliera 3D</div>
-          <div class="chart-subtitle">X = temperatura sucha, Y = czas, Z = entalpia, powierzchnie RH + trajektoria danych</div>
-        </div>
-      </div>
-      <div id="mollier3dChart"></div>
-      <div id="mollier3dInfo" class="info-line">Oczekiwanie na dane...</div>
-    </section>
-  </div>
+    <div id="info" class="info">
+      Oczekiwanie na dane...
+    </div>
+  </section>
 
   <script>
-    const CHANNEL_ID = 3317976;
-    const READ_API_KEY = "5X3O3RVY2FIIBGXO";
-    const FIELD = 1;
-    const MAX_POINTS = 1800;
-    const THINGSPEAK_CHUNK_HOURS = 24;
-    const FUTURE_FORECAST_DAYS = 3;
+    // =============================================================================
+    // REFERENCJE DO ELEMENTÓW
+    // =============================================================================
+    const statusEl = document.getElementById("status");
+    const infoEl = document.getElementById("info");
+
+    // =============================================================================
+    // STAŁE
+    // =============================================================================
+    const HISTORY_HOURS = 72;
     const RH_SURFACES = [20, 40, 60, 80, 100];
     const DEFAULT_TEMP_AXIS_MIN = -40;
     const DEFAULT_TEMP_AXIS_MAX = 10;
     const AXIS_DATA_COVERAGE_TARGET = 0.8;
 
-    let currentRangeHours = 1;
-    let useCustomRange = false;
-    let refreshTimer = null;
-    let lublinGeo = null;
-    let chartUiRevision = 0;
-
-    const statusEl = document.getElementById("status");
-    const autoToggleEl = document.getElementById("autoToggle");
-    const intervalSelectEl = document.getElementById("intervalSelect");
-    const refreshBtnEl = document.getElementById("refreshBtn");
-    const hoursSliderEl = document.getElementById("hoursSlider");
-    const sliderHoursValueEl = document.getElementById("sliderHoursValue");
-    const overlayDaysSelectEl = document.getElementById("overlayDaysSelect");
-    const startDateEl = document.getElementById("startDate");
-    const endDateEl = document.getElementById("endDate");
-    const applyRangeBtnEl = document.getElementById("applyRangeBtn");
-    const resetRangeBtnEl = document.getElementById("resetRangeBtn");
-    const currentTempEl = document.getElementById("currentTemp");
-    const lastTimeEl = document.getElementById("lastTime");
-    const outsideTempEl = document.getElementById("outsideTemp");
-    const outsideInfoEl = document.getElementById("outsideInfo");
-    const outsideRHEl = document.getElementById("outsideRH");
-    const outsideAHEl = document.getElementById("outsideAH");
-    const outsidePressureEl = document.getElementById("outsidePressure");
-    const outsideDewPointEl = document.getElementById("outsideDewPoint");
-    const sunriseValueEl = document.getElementById("sunriseValue");
-    const sunsetValueEl = document.getElementById("sunsetValue");
-    const comfortValueEl = document.getElementById("comfortValue");
-    const comfortSubEl = document.getElementById("comfortSub");
-    const pointCountsSummaryEl = document.getElementById("pointCountsSummary");
-    const mollier3dInfoEl = document.getElementById("mollier3dInfo");
-
-    const analysisIds = {
-      sensor: {
-        min: document.getElementById("sensorMin"),
-        max: document.getElementById("sensorMax"),
-        avg: document.getElementById("sensorAvg"),
-        amplitude: document.getElementById("sensorAmplitude"),
-        trend: document.getElementById("sensorTrend"),
-        trendNote: document.getElementById("sensorTrendNote"),
-        pointCount: document.getElementById("sensorPointCount")
-      },
-      lublin: {
-        min: document.getElementById("lublinMin"),
-        max: document.getElementById("lublinMax"),
-        avg: document.getElementById("lublinAvg"),
-        amplitude: document.getElementById("lublinAmplitude"),
-        trend: document.getElementById("lublinTrend"),
-        trendNote: document.getElementById("lublinTrendNote"),
-        pointCount: document.getElementById("lublinPointCount")
-      }
-    };
-
-    function formatHoursLabel(hours) {
-      const days = hours / 24.0;
-      return `${hours} h (${days.toFixed(2)} dni)`;
+    // =============================================================================
+    // FUNKCJE POMOCNICZE
+    // =============================================================================
+    function formatDateTime(dateOrString) {
+      const date = dateOrString instanceof Date ? dateOrString : new Date(dateOrString);
+      return date.toLocaleString("pl-PL");
     }
 
-    function formatThingSpeakDateUTC(date) {
-      const y = date.getUTCFullYear();
-      const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-      const d = String(date.getUTCDate()).padStart(2, "0");
-      const hh = String(date.getUTCHours()).padStart(2, "0");
-      const mm = String(date.getUTCMinutes()).padStart(2, "0");
-      const ss = String(date.getUTCSeconds()).padStart(2, "0");
-      return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
-    }
-
-    function formatDateForApiUTC(date) {
+    function formatDateApi(date) {
       const y = date.getUTCFullYear();
       const m = String(date.getUTCMonth() + 1).padStart(2, "0");
       const d = String(date.getUTCDate()).padStart(2, "0");
       return `${y}-${m}-${d}`;
     }
 
-    function toLocalInputValue(date) {
-      const pad = n => String(n).padStart(2, "0");
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    }
-
-    function formatDateTime(dateOrString) {
-      const date = dateOrString instanceof Date ? dateOrString : new Date(dateOrString);
-      return date.toLocaleString("pl-PL");
-    }
-
-    function formatTimePL(dateOrString) {
-      const date = dateOrString instanceof Date ? dateOrString : new Date(dateOrString);
-      return date.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
-    }
-
-    function getActiveRange() {
-      if (useCustomRange && startDateEl.value && endDateEl.value) {
-        return { start: new Date(startDateEl.value), end: new Date(endDateEl.value) };
-      }
-
-      const end = new Date();
-      const start = new Date(end.getTime() - currentRangeHours * 60 * 60 * 1000);
-      return { start, end };
-    }
-
-    function downsample(xArr, yArr, maxPoints) {
-      const n = xArr.length;
-      if (n <= maxPoints) return { x: xArr, y: yArr };
-      const step = Math.ceil(n / maxPoints);
-      const x = [];
-      const y = [];
-      for (let i = 0; i < n; i += step) {
-        x.push(xArr[i]);
-        y.push(yArr[i]);
-      }
-      return { x, y };
-    }
-
-    function calculateStats(values) {
-      if (!values || values.length === 0) return null;
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
-      const amplitude = max - min;
-      const trend = values[values.length - 1] - values[0];
-      return { min, max, avg, amplitude, trend };
-    }
-
-    function evaluateComfort(temp) {
-      if (temp == null || Number.isNaN(temp)) {
-        return { label: "Brak danych", sub: "Nie udało się wyznaczyć oceny zakresu." };
-      }
-      if (temp < 17.0) return { label: "Za chłodno", sub: "Temperatura jest raczej niska. Do snu może być zbyt zimno." };
-      if (temp >= 17.0 && temp <= 19.5) return { label: "Bardzo dobry zakres", sub: "Zakres zwykle uznawany za korzystny dla snu i odpoczynku." };
-      if (temp > 19.5 && temp <= 22.5) return { label: "Dobry / neutralny zakres", sub: "Temperatura wygląda rozsądnie, ale warto obserwować własny komfort." };
-      if (temp > 22.5 && temp <= 25.0) return { label: "Dość ciepło", sub: "Może być odczuwalne jako zbyt ciepłe, zwłaszcza przy śnie." };
-      return { label: "Za ciepło", sub: "Wysoka temperatura może pogarszać zasypianie i jakość snu." };
-    }
-
-    function formatTrend(trend) {
-      const abs = Math.abs(trend).toFixed(3);
-      if (trend > 0.02) return { text: `↑ ${abs} °C`, cls: "up", note: "Temperatura rośnie w obrębie wybranego zakresu." };
-      if (trend < -0.02) return { text: `↓ ${abs} °C`, cls: "down", note: "Temperatura spada w obrębie wybranego zakresu." };
-      return { text: `→ ${abs} °C`, cls: "flat", note: "Temperatura jest względnie stabilna w obrębie wybranego zakresu." };
-    }
-
-    function calculateAbsoluteHumidity(tempC, rhPercent) {
-      if (!Number.isFinite(tempC) || !Number.isFinite(rhPercent)) return null;
-      const saturationVaporPressure = 6.112 * Math.exp((17.67 * tempC) / (tempC + 243.5));
-      const vaporPressure = (rhPercent / 100.0) * saturationVaporPressure;
-      return 216.7 * (vaporPressure / (tempC + 273.15));
-    }
-
-    function calculateDewPoint(tempC, rhPercent) {
-      if (!Number.isFinite(tempC) || !Number.isFinite(rhPercent) || rhPercent <= 0) return null;
-      const a = 17.27;
-      const b = 237.7;
-      const gamma = ((a * tempC) / (b + tempC)) + Math.log(rhPercent / 100.0);
-      return (b * gamma) / (a - gamma);
-    }
-
     function calculateHumidityRatio(tempC, rhPercent, pressureHpa = 1013.25) {
-      if (!Number.isFinite(tempC) || !Number.isFinite(rhPercent) || !Number.isFinite(pressureHpa)) return null;
+      if (!Number.isFinite(tempC) || !Number.isFinite(rhPercent) || !Number.isFinite(pressureHpa)) {
+        return null;
+      }
+
       const pws = 6.112 * Math.exp((17.67 * tempC) / (tempC + 243.5));
       const pw = (rhPercent / 100.0) * pws;
       return 0.62198 * pw / (pressureHpa - pw);
     }
 
     function calculateEnthalpy(tempC, humidityRatioKgKg) {
-      if (!Number.isFinite(tempC) || !Number.isFinite(humidityRatioKgKg)) return null;
+      if (!Number.isFinite(tempC) || !Number.isFinite(humidityRatioKgKg)) {
+        return null;
+      }
+
       return 1.006 * tempC + humidityRatioKgKg * (2501 + 1.86 * tempC);
     }
 
-    function deduplicateByTime(xArr, yArr) {
-      const map = new Map();
-      for (let i = 0; i < xArr.length; i++) map.set(xArr[i].getTime(), yArr[i]);
-      const times = Array.from(map.keys()).sort((a, b) => a - b);
-      return { x: times.map(t => new Date(t)), y: times.map(t => map.get(t)) };
-    }
-
-    function filterByRange(xArr, yArr, startDate, endDate) {
-      const x = [];
-      const y = [];
-      const startMs = startDate.getTime();
-      const endMs = endDate.getTime();
-      for (let i = 0; i < xArr.length; i++) {
-        const t = xArr[i].getTime();
-        if (t >= startMs && t <= endMs) {
-          x.push(xArr[i]);
-          y.push(yArr[i]);
-        }
-      }
-      return { x, y };
-    }
-
-    async function fetchThingSpeakRange(startDate, endDate) {
-      const allX = [];
-      const allY = [];
-      let chunkStart = new Date(startDate.getTime());
-
-      while (chunkStart < endDate) {
-        const chunkEnd = new Date(Math.min(chunkStart.getTime() + THINGSPEAK_CHUNK_HOURS * 60 * 60 * 1000, endDate.getTime()));
-        let url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/${FIELD}.json?start=${encodeURIComponent(formatThingSpeakDateUTC(chunkStart))}&end=${encodeURIComponent(formatThingSpeakDateUTC(chunkEnd))}&results=8000`;
-        if (READ_API_KEY && READ_API_KEY.length > 0) url += `&api_key=${READ_API_KEY}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.feeds && data.feeds.length) {
-          data.feeds.forEach(feed => {
-            if (feed.field1 !== null) {
-              allX.push(new Date(feed.created_at));
-              allY.push(parseFloat(feed.field1));
-            }
-          });
-        }
-        chunkStart = new Date(chunkEnd.getTime() + 1000);
+    function calculateDewPoint(tempC, rhPercent) {
+      if (!Number.isFinite(tempC) || !Number.isFinite(rhPercent) || rhPercent <= 0) {
+        return null;
       }
 
-      const deduped = deduplicateByTime(allX, allY);
-      const filtered = filterByRange(deduped.x, deduped.y, startDate, endDate);
-      return downsample(filtered.x, filtered.y, MAX_POINTS);
+      const a = 17.27;
+      const b = 237.7;
+      const gamma = ((a * tempC) / (b + tempC)) + Math.log(rhPercent / 100.0);
+      return (b * gamma) / (a - gamma);
     }
+
+    function calculateAbsoluteHumidity(tempC, rhPercent) {
+      if (!Number.isFinite(tempC) || !Number.isFinite(rhPercent)) {
+        return null;
+      }
+
+      const saturationVaporPressure = 6.112 * Math.exp((17.67 * tempC) / (tempC + 243.5));
+      const vaporPressure = (rhPercent / 100.0) * saturationVaporPressure;
+      return 216.7 * (vaporPressure / (tempC + 273.15));
+    }
+
+    // =============================================================================
+    // OPEN-METEO
+    // =============================================================================
+    let lublinGeo = null;
 
     async function getLublinGeo() {
-      if (lublinGeo) return lublinGeo;
+      if (lublinGeo) {
+        return lublinGeo;
+      }
+
       const url = "https://geocoding-api.open-meteo.com/v1/search?name=Lublin&count=1&language=pl&format=json";
       const response = await fetch(url);
       const data = await response.json();
-      if (!data.results || !data.results.length) throw new Error("Nie znaleziono Lublina.");
-      lublinGeo = { latitude: data.results[0].latitude, longitude: data.results[0].longitude };
+
+      if (!data.results || !data.results.length) {
+        throw new Error("Nie znaleziono Lublina.");
+      }
+
+      lublinGeo = {
+        latitude: data.results[0].latitude,
+        longitude: data.results[0].longitude
+      };
+
       return lublinGeo;
     }
 
     async function fetchLublinCurrent() {
       const geo = await getLublinGeo();
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,relative_humidity_2m,pressure_msl&timezone=GMT`;
-      const response = await fetch(url);
-      const data = await response.json();
-      const temp = data?.current?.temperature_2m ?? null;
-      const rh = data?.current?.relative_humidity_2m ?? null;
-      const pressure = data?.current?.pressure_msl ?? null;
-      return {
-        currentTemp: temp,
-        currentRH: rh,
-        currentPressure: pressure,
-        currentAH: calculateAbsoluteHumidity(temp, rh),
-        currentDewPoint: calculateDewPoint(temp, rh),
-        currentTime: data?.current?.time ? new Date(`${data.current.time}Z`) : null
-      };
-    }
 
-    async function fetchLublinHistory(startDate, endDate) {
-      const geo = await getLublinGeo();
-      const startDateApi = formatDateForApiUTC(startDate);
-      const endDateApi = formatDateForApiUTC(endDate);
-      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${geo.latitude}&longitude=${geo.longitude}&start_date=${startDateApi}&end_date=${endDateApi}&hourly=temperature_2m,relative_humidity_2m,pressure_msl&timezone=GMT`;
+      const url =
+        `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,relative_humidity_2m,pressure_msl&timezone=GMT`;
+
       const response = await fetch(url);
       const data = await response.json();
 
-      const times = (data?.hourly?.time ?? []).map(t => new Date(`${t}Z`));
-      const temps = data?.hourly?.temperature_2m ?? [];
-      const rhs = data?.hourly?.relative_humidity_2m ?? [];
-      const pressures = data?.hourly?.pressure_msl ?? [];
-      const absHum = temps.map((t, i) => calculateAbsoluteHumidity(t, rhs[i]));
-      const dewPoints = temps.map((t, i) => calculateDewPoint(t, rhs[i]));
-
-      const filteredTime = [];
-      const filteredTemp = [];
-      const filteredRH = [];
-      const filteredAH = [];
-      const filteredPressure = [];
-      const filteredDewPoint = [];
-
-      const startMs = startDate.getTime();
-      const endMs = endDate.getTime();
-
-      for (let i = 0; i < times.length; i++) {
-        const ms = times[i].getTime();
-        if (ms >= startMs && ms <= endMs) {
-          filteredTime.push(times[i]);
-          filteredTemp.push(temps[i]);
-          filteredRH.push(rhs[i]);
-          filteredAH.push(absHum[i]);
-          filteredPressure.push(pressures[i]);
-          filteredDewPoint.push(dewPoints[i]);
-        }
-      }
-
       return {
-        x: filteredTime,
-        temp: filteredTemp,
-        rh: filteredRH,
-        ah: filteredAH,
-        pressure: filteredPressure,
-        dewPoint: filteredDewPoint
+        temp: data?.current?.temperature_2m ?? null,
+        rh: data?.current?.relative_humidity_2m ?? null,
+        pressure: data?.current?.pressure_msl ?? 1013.25,
+        time: data?.current?.time ? new Date(`${data.current.time}Z`) : null
       };
     }
 
-    async function fetchLublinModelLine(startDate, endDate) {
+    async function fetchLublinHistory(hoursBack) {
       const geo = await getLublinGeo();
+
       const now = new Date();
-      const msBack = Math.max(0, now.getTime() - startDate.getTime());
-      const daysBack = Math.max(1, Math.ceil(msBack / (24 * 60 * 60 * 1000)));
-      const msForward = Math.max(0, endDate.getTime() - now.getTime());
-      const daysForwardFromRange = Math.ceil(msForward / (24 * 60 * 60 * 1000));
-      const forecastDays = Math.max(FUTURE_FORECAST_DAYS, daysForwardFromRange + 1);
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&hourly=temperature_2m&past_days=${daysBack}&forecast_days=${forecastDays}&timezone=GMT`;
+      const start = new Date(now.getTime() - hoursBack * 60 * 60 * 1000);
+
+      const startDateApi = formatDateApi(start);
+      const endDateApi = formatDateApi(now);
+
+      const url =
+        `https://archive-api.open-meteo.com/v1/archive?latitude=${geo.latitude}&longitude=${geo.longitude}&start_date=${startDateApi}&end_date=${endDateApi}&hourly=temperature_2m,relative_humidity_2m,pressure_msl&timezone=GMT`;
+
       const response = await fetch(url);
       const data = await response.json();
-      return {
-        x: (data?.hourly?.time ?? []).map(t => new Date(`${t}Z`)),
-        temp: data?.hourly?.temperature_2m ?? []
-      };
-    }
 
-    async function fetchLublinSunDaily() {
-      const geo = await getLublinGeo();
-      const today = new Date();
-      const localDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const tomorrow = new Date(localDate.getTime() + 24 * 60 * 60 * 1000);
-      const pad = n => String(n).padStart(2, "0");
-      const startDate = `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}`;
-      const endDate = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&daily=sunrise,sunset&timezone=Europe/Warsaw&start_date=${startDate}&end_date=${endDate}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      return { sunrise: data?.daily?.sunrise?.[0] ?? null, sunset: data?.daily?.sunset?.[0] ?? null };
-    }
+      const rawTimes = data?.hourly?.time ?? [];
+      const rawTemps = data?.hourly?.temperature_2m ?? [];
+      const rawRHs = data?.hourly?.relative_humidity_2m ?? [];
+      const rawPressures = data?.hourly?.pressure_msl ?? [];
 
-    function setStatsBlock(prefix, stats, pointCount) {
-      const ids = analysisIds[prefix];
-      if (!stats) {
-        ids.min.textContent = "--";
-        ids.max.textContent = "--";
-        ids.avg.textContent = "--";
-        ids.amplitude.textContent = "--";
-        ids.trend.textContent = "--";
-        ids.trend.className = "analysis-value";
-        ids.trendNote.textContent = "Brak danych.";
-        ids.pointCount.textContent = "--";
-        return;
-      }
+      const out = [];
+      const startMs = start.getTime();
+      const endMs = now.getTime();
 
-      const trendInfo = formatTrend(stats.trend);
-      ids.min.textContent = `${stats.min.toFixed(2)} °C`;
-      ids.max.textContent = `${stats.max.toFixed(2)} °C`;
-      ids.avg.textContent = `${stats.avg.toFixed(2)} °C`;
-      ids.amplitude.textContent = `Amplituda: ${stats.amplitude.toFixed(3)} °C`;
-      ids.trend.textContent = trendInfo.text;
-      ids.trend.className = `analysis-value ${trendInfo.cls}`;
-      ids.trendNote.textContent = trendInfo.note;
-      ids.pointCount.textContent = `${pointCount}`;
-    }
+      for (let i = 0; i < rawTimes.length; i++) {
+        const time = new Date(`${rawTimes[i]}Z`);
+        const ms = time.getTime();
 
-    function updateAnalysisPanel(sensorData, lublinHistory, outsideCurrent, sunDaily) {
-      const sensorX = sensorData.x;
-      const sensorY = sensorData.y;
-      const lublinY = lublinHistory.temp;
-
-      if (!sensorX.length || !sensorY.length) {
-        currentTempEl.textContent = "--.-- °C";
-        lastTimeEl.textContent = "Ostatni punkt: —";
-        comfortValueEl.textContent = "Brak danych";
-        comfortSubEl.textContent = "Panel pokaże orientacyjną ocenę po pobraniu danych.";
-      } else {
-        const currentTemp = sensorY[sensorY.length - 1];
-        currentTempEl.textContent = `${currentTemp.toFixed(2)} °C`;
-        lastTimeEl.textContent = `Ostatni punkt: ${formatDateTime(sensorX[sensorX.length - 1])}`;
-        const comfort = evaluateComfort(currentTemp);
-        comfortValueEl.textContent = comfort.label;
-        comfortSubEl.textContent = comfort.sub;
-      }
-
-      if (outsideCurrent && outsideCurrent.currentTemp != null) {
-        outsideTempEl.textContent = `${Number(outsideCurrent.currentTemp).toFixed(2)} °C`;
-        outsideInfoEl.textContent = `Aktualizacja: ${outsideCurrent.currentTime ? formatDateTime(outsideCurrent.currentTime) : "—"}`;
-        outsideRHEl.textContent = outsideCurrent.currentRH != null ? `${Number(outsideCurrent.currentRH).toFixed(1)} %` : "--.-- %";
-        outsideAHEl.textContent = outsideCurrent.currentAH != null ? `${Number(outsideCurrent.currentAH).toFixed(2)} g/m³` : "--.-- g/m³";
-        outsidePressureEl.textContent = outsideCurrent.currentPressure != null ? `${Number(outsideCurrent.currentPressure).toFixed(1)} hPa` : "--.-- hPa";
-        outsideDewPointEl.textContent = outsideCurrent.currentDewPoint != null ? `${Number(outsideCurrent.currentDewPoint).toFixed(2)} °C` : "--.-- °C";
-      } else {
-        outsideTempEl.textContent = "--.-- °C";
-        outsideInfoEl.textContent = "Dane zewnętrzne: brak";
-        outsideRHEl.textContent = "--.-- %";
-        outsideAHEl.textContent = "--.-- g/m³";
-        outsidePressureEl.textContent = "--.-- hPa";
-        outsideDewPointEl.textContent = "--.-- °C";
-      }
-
-      if (sunDaily && sunDaily.sunrise && sunDaily.sunset) {
-        sunriseValueEl.textContent = formatTimePL(sunDaily.sunrise);
-        sunsetValueEl.textContent = formatTimePL(sunDaily.sunset);
-      } else {
-        sunriseValueEl.textContent = "--:--";
-        sunsetValueEl.textContent = "--:--";
-      }
-
-      setStatsBlock("sensor", calculateStats(sensorY), sensorY.length);
-      setStatsBlock("lublin", calculateStats(lublinY), lublinY.length);
-      pointCountsSummaryEl.textContent = `S: ${sensorY.length} | L: ${lublinY.length}`;
-    }
-
-    function getCommonPlotConfig() {
-      return {
-        responsive: true,
-        displayModeBar: true,
-        scrollZoom: true,
-        displaylogo: false
-      };
-    }
-
-    function buildRangeSliderConfig() {
-      return {
-        visible: true,
-        bgcolor: "#101827",
-        bordercolor: "#243146",
-        thickness: 0.11
-      };
-    }
-
-    function renderMainChart(sensorData, lublinHistory, lublinModel) {
-      const sensorX = sensorData.x;
-      const sensorY = sensorData.y;
-      const lublinX = lublinHistory.x;
-      const lublinY = lublinHistory.temp;
-
-      const traces = [{
-        x: sensorX,
-        y: sensorY,
-        mode: "lines",
-        name: "Sensor",
-        line: { color: "#4f8cff", width: 2.6 },
-        fill: "tozeroy",
-        fillcolor: "rgba(79, 140, 255, 0.08)"
-      }];
-
-      if (lublinX.length && lublinY.length) {
-        traces.push({ x: lublinX, y: lublinY, mode: "lines", name: "Lublin", line: { color: "#f59e0b", width: 2.1 } });
-      }
-
-      if (lublinModel.x.length && lublinModel.temp.length) {
-        traces.push({ x: lublinModel.x, y: lublinModel.temp, mode: "lines", name: "Lublin model", line: { color: "#f472b6", width: 2.0, dash: "dash" } });
-      }
-
-      const mergedValues = [...sensorY, ...lublinY, ...lublinModel.temp].filter(v => Number.isFinite(v));
-      let yRange;
-      if (mergedValues.length) {
-        const minVal = Math.min(...mergedValues);
-        const maxVal = Math.max(...mergedValues);
-        const span = Math.max(maxVal - minVal, 0.3);
-        const pad = span * 0.08;
-        yRange = [minVal - pad, maxVal + pad];
-      }
-
-      const layout = {
-        margin: { l: 56, r: 18, t: 12, b: 70 },
-        paper_bgcolor: "rgba(0,0,0,0)",
-        plot_bgcolor: "rgba(0,0,0,0)",
-        font: { color: "#e5edf8" },
-        dragmode: "pan",
-        uirevision: chartUiRevision,
-        legend: { orientation: "h", y: 1.12, x: 0 },
-        xaxis: { title: "Czas", gridcolor: "#243146", zerolinecolor: "#243146", fixedrange: false, rangeslider: buildRangeSliderConfig() },
-        yaxis: { title: "°C", gridcolor: "#243146", zerolinecolor: "#243146", autorange: false, range: yRange, fixedrange: false },
-        showlegend: true
-      };
-
-      Plotly.react("mainChart", traces, layout, getCommonPlotConfig());
-    }
-
-    function renderHistogram(sensorY) {
-      const trace = {
-        x: sensorY,
-        type: "histogram",
-        marker: { color: "#22c55e", line: { color: "#1a2c1f", width: 1 } },
-        opacity: 0.9,
-        nbinsx: Math.min(24, Math.max(8, Math.round(Math.sqrt(sensorY.length || 1))))
-      };
-
-      const layout = {
-        margin: { l: 56, r: 18, t: 12, b: 70 },
-        paper_bgcolor: "rgba(0,0,0,0)",
-        plot_bgcolor: "rgba(0,0,0,0)",
-        font: { color: "#e5edf8" },
-        bargap: 0.06,
-        dragmode: "pan",
-        uirevision: chartUiRevision,
-        xaxis: { title: "Temperatura [°C]", gridcolor: "#243146", fixedrange: false, rangeslider: buildRangeSliderConfig() },
-        yaxis: { title: "Liczba wystąpień", gridcolor: "#243146", fixedrange: false }
-      };
-
-      Plotly.react("histChart", [trace], layout, getCommonPlotConfig());
-    }
-
-    function renderMeteoChart(lublinHistory) {
-      const traces = [];
-      if (lublinHistory.x.length) {
-        traces.push({ x: lublinHistory.x, y: lublinHistory.rh, mode: "lines", name: "RH [%]", line: { color: "#38bdf8", width: 2.0 } });
-        traces.push({ x: lublinHistory.x, y: lublinHistory.ah, mode: "lines", name: "AH [g/m³]", line: { color: "#22c55e", width: 2.0, dash: "dot" } });
-        traces.push({ x: lublinHistory.x, y: lublinHistory.dewPoint, mode: "lines", name: "Punkt rosy [°C]", line: { color: "#f472b6", width: 2.0 } });
-        traces.push({ x: lublinHistory.x, y: lublinHistory.pressure, mode: "lines", name: "Ciśnienie [hPa]", yaxis: "y2", line: { color: "#f59e0b", width: 2.0 } });
-      }
-
-      const layout = {
-        margin: { l: 56, r: 56, t: 12, b: 70 },
-        paper_bgcolor: "rgba(0,0,0,0)",
-        plot_bgcolor: "rgba(0,0,0,0)",
-        font: { color: "#e5edf8" },
-        dragmode: "pan",
-        uirevision: chartUiRevision,
-        legend: { orientation: "h", y: 1.12, x: 0 },
-        xaxis: { title: "Czas", gridcolor: "#243146", fixedrange: false, rangeslider: buildRangeSliderConfig() },
-        yaxis: { title: "RH / AH / DP", gridcolor: "#243146", fixedrange: false },
-        yaxis2: { title: "hPa", overlaying: "y", side: "right", fixedrange: false },
-        showlegend: true
-      };
-
-      Plotly.react("meteoChart", traces, layout, getCommonPlotConfig());
-    }
-
-    function renderOverlayDaysChart(sensorData, lublinHistory) {
-      const daysToShow = parseInt(overlayDaysSelectEl.value, 10);
-      const traces = [];
-      const palette = ["#4f8cff", "#22c55e", "#f59e0b", "#f472b6", "#38bdf8", "#a78bfa", "#ef4444"];
-
-      function buildDayOverlay(seriesX, seriesY, prefix, dashed) {
-        const map = new Map();
-        for (let i = 0; i < seriesX.length; i++) {
-          const d = seriesX[i];
-          const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-          if (!map.has(dayKey)) map.set(dayKey, []);
-          map.get(dayKey).push({ hour: d.getHours() + d.getMinutes() / 60, value: seriesY[i] });
+        if (ms < startMs || ms > endMs) {
+          continue;
         }
-        const keys = Array.from(map.keys()).sort().slice(-daysToShow);
-        keys.forEach((key, idx) => {
-          const arr = map.get(key).sort((a, b) => a.hour - b.hour);
-          traces.push({
-            x: arr.map(p => p.hour),
-            y: arr.map(p => p.value),
-            mode: "lines",
-            name: `${prefix} ${key}`,
-            line: { color: palette[idx % palette.length], width: prefix === "Sensor" ? 2.4 : 1.8, dash: dashed ? "dash" : "solid" }
-          });
-        });
-      }
 
-      buildDayOverlay(sensorData.x, sensorData.y, "Sensor", false);
-      buildDayOverlay(lublinHistory.x, lublinHistory.temp, "Lublin", true);
+        const temp = rawTemps[i];
+        const rh = rawRHs[i];
+        const pressure = rawPressures[i];
 
-      const merged = [...sensorData.y, ...lublinHistory.temp].filter(v => Number.isFinite(v));
-      let yRange;
-      if (merged.length) {
-        const minVal = Math.min(...merged);
-        const maxVal = Math.max(...merged);
-        const span = Math.max(maxVal - minVal, 0.3);
-        const pad = span * 0.08;
-        yRange = [minVal - pad, maxVal + pad];
-      }
+        const humidityRatio = calculateHumidityRatio(temp, rh, pressure);
+        const enthalpy = calculateEnthalpy(temp, humidityRatio);
 
-      const layout = {
-        margin: { l: 56, r: 18, t: 12, b: 70 },
-        paper_bgcolor: "rgba(0,0,0,0)",
-        plot_bgcolor: "rgba(0,0,0,0)",
-        font: { color: "#e5edf8" },
-        dragmode: "pan",
-        uirevision: chartUiRevision,
-        legend: { orientation: "h", y: 1.14, x: 0 },
-        xaxis: {
-          title: "Godzina doby",
-          gridcolor: "#243146",
-          tickmode: "array",
-          tickvals: [0, 3, 6, 9, 12, 15, 18, 21, 24],
-          ticktext: ["0", "3", "6", "9", "12", "15", "18", "21", "24"],
-          fixedrange: false,
-          rangeslider: buildRangeSliderConfig()
-        },
-        yaxis: { title: "°C", gridcolor: "#243146", range: yRange, fixedrange: false },
-        showlegend: true
-      };
-
-      Plotly.react("overlayChart", traces, layout, getCommonPlotConfig());
-    }
-
-    function renderMollierChart(outsideCurrent) {
-      const temp = outsideCurrent?.currentTemp;
-      const rh = outsideCurrent?.currentRH;
-      const pressure = outsideCurrent?.currentPressure ?? 1013.25;
-      const rhLines = [20, 40, 60, 80, 100];
-      const traces = [];
-
-      rhLines.forEach(rhLine => {
-        const x = [];
-        const y = [];
-        for (let t = -10; t <= 40; t += 1) {
-          const w = calculateHumidityRatio(t, rhLine, pressure);
-          const h = calculateEnthalpy(t, w);
-          if (Number.isFinite(h) && Number.isFinite(w)) {
-            x.push(t);
-            y.push(h);
-          }
+        if (!Number.isFinite(temp) || !Number.isFinite(enthalpy)) {
+          continue;
         }
-        traces.push({
-          x,
-          y,
-          mode: "lines",
-          name: `RH ${rhLine}%`,
-          line: { color: rhLine === 100 ? "#f59e0b" : "#243146", width: rhLine === 100 ? 2 : 1, dash: rhLine === 100 ? "solid" : "dot" },
-          hoverinfo: "skip"
-        });
-      });
 
-      if (Number.isFinite(temp) && Number.isFinite(rh)) {
-        const w = calculateHumidityRatio(temp, rh, pressure);
-        const h = calculateEnthalpy(temp, w);
-        traces.push({
-          x: [temp],
-          y: [h],
-          mode: "markers+text",
-          name: "Aktualny punkt",
-          marker: { size: 11, color: "#f472b6" },
-          text: ["Lublin teraz"],
-          textposition: "top center"
+        out.push({
+          time,
+          temp,
+          rh,
+          pressure,
+          humidityRatio,
+          enthalpy
         });
       }
 
-      const layout = {
-        margin: { l: 56, r: 18, t: 12, b: 70 },
-        paper_bgcolor: "rgba(0,0,0,0)",
-        plot_bgcolor: "rgba(0,0,0,0)",
-        font: { color: "#e5edf8" },
-        dragmode: "pan",
-        uirevision: chartUiRevision,
-        legend: { orientation: "h", y: 1.14, x: 0 },
-        xaxis: { title: "Temperatura sucha [°C]", gridcolor: "#243146", fixedrange: false, rangeslider: buildRangeSliderConfig() },
-        yaxis: { title: "Entalpia [kJ/kg suchego powietrza]", gridcolor: "#243146", fixedrange: false },
-        showlegend: true
-      };
-
-      Plotly.react("mollierChart", traces, layout, getCommonPlotConfig());
+      return out;
     }
 
+    // =============================================================================
+    // BUDOWA POWIERZCHNI RH
+    // =============================================================================
     function buildRhSurfaceTrace(rhValue, timeValues, pressureRef) {
       const tempAxis = [];
-      for (let t = DEFAULT_TEMP_AXIS_MIN; t <= DEFAULT_TEMP_AXIS_MAX; t += 1) tempAxis.push(t);
+      for (let t = DEFAULT_TEMP_AXIS_MIN; t <= DEFAULT_TEMP_AXIS_MAX; t += 1) {
+        tempAxis.push(t);
+      }
 
       const xMatrix = [];
       const yMatrix = [];
@@ -1143,14 +337,17 @@ Założenia i interpretacja działania:
         const rowX = [];
         const rowY = [];
         const rowZ = [];
+
         for (let j = 0; j < tempAxis.length; j++) {
           const temp = tempAxis[j];
           const w = calculateHumidityRatio(temp, rhValue, pressureRef);
           const h = calculateEnthalpy(temp, w);
+
           rowX.push(temp);
           rowY.push(timeValues[i]);
           rowZ.push(Number.isFinite(h) ? h : null);
         }
+
         xMatrix.push(rowX);
         yMatrix.push(rowY);
         zMatrix.push(rowZ);
@@ -1165,28 +362,61 @@ Założenia i interpretacja działania:
         customdata: xMatrix,
         opacity: rhValue === 100 ? 0.36 : 0.16,
         showscale: false,
-        hovertemplate: "Temperatura: %{customdata:.2f} °C<br>Czas: %{y}<br>Entalpia: %{z:.2f} kJ/kg<extra>RH " + rhValue + "%</extra>",
-        contours: { x: { show: false }, y: { show: false }, z: { show: false } },
-        colorscale: rhValue === 100 ? [[0, "#f59e0b"], [1, "#f59e0b"]] : [[0, "#2f3f5f"], [1, "#2f3f5f"]]
+        hovertemplate:
+          "Temperatura: %{customdata:.2f} °C<br>" +
+          "Czas: %{y}<br>" +
+          "Entalpia: %{z:.2f} kJ/kg<extra>RH " + rhValue + "%</extra>",
+        contours: {
+          x: { show: false },
+          y: { show: false },
+          z: { show: false }
+        },
+        colorscale: rhValue === 100
+          ? [
+              [0, "#f59e0b"],
+              [1, "#f59e0b"]
+            ]
+          : [
+              [0, "#2f3f5f"],
+              [1, "#2f3f5f"]
+            ]
+      };
+    }
+
+    // =============================================================================
+    // WYKRES
+    // =============================================================================
+    function getCommonPlotConfig() {
+      return {
+        responsive: true,
+        displayModeBar: true,
+        scrollZoom: true,
+        displaylogo: false
       };
     }
 
     function renderMollier3D(historyPoints, currentPoint) {
-      if (!historyPoints.length) {
-        Plotly.react("mollier3dChart", [], {}, getCommonPlotConfig());
-        mollier3dInfoEl.textContent = "Brak danych do wykresu Moliera 3D.";
-        return;
-      }
-
       const traces = [];
+
       const timeValues = historyPoints.map(p => p.time);
-      const pressureValues = historyPoints.map(p => p.pressure).filter(v => Number.isFinite(v));
-      const pressureRef = pressureValues.length ? pressureValues.reduce((a, b) => a + b, 0) / pressureValues.length : 1013.25;
+      const pressureValues = historyPoints
+        .map(p => p.pressure)
+        .filter(v => Number.isFinite(v));
+
+      const pressureRef = pressureValues.length
+        ? pressureValues.reduce((a, b) => a + b, 0) / pressureValues.length
+        : 1013.25;
 
       const xAxisVisualScale = 1.45;
       const zAxisVisualScale = 1.1;
-      const historyTemps = historyPoints.map(p => p.temp).filter(v => Number.isFinite(v));
-      const historyEnthalpies = historyPoints.map(p => p.enthalpy).filter(v => Number.isFinite(v));
+
+      const historyTemps = historyPoints
+        .map(p => p.temp)
+        .filter(v => Number.isFinite(v));
+
+      const historyEnthalpies = historyPoints
+        .map(p => p.enthalpy)
+        .filter(v => Number.isFinite(v));
 
       const tempDataMin = historyTemps.length ? Math.min(...historyTemps) : DEFAULT_TEMP_AXIS_MIN;
       const tempDataMax = historyTemps.length ? Math.max(...historyTemps) : DEFAULT_TEMP_AXIS_MAX;
@@ -1194,17 +424,26 @@ Założenia i interpretacja działania:
       const tempSpanTarget = tempDataSpan / AXIS_DATA_COVERAGE_TARGET;
 
       let tempCenter = (tempDataMin + tempDataMax) / 2;
-      if (currentPoint && Number.isFinite(currentPoint.temp)) tempCenter = (tempCenter + currentPoint.temp) / 2;
+      if (currentPoint && Number.isFinite(currentPoint.temp)) {
+        tempCenter = (tempCenter + currentPoint.temp) / 2;
+      }
 
       let tempMin = tempCenter - tempSpanTarget / 2;
       let tempMax = tempCenter + tempSpanTarget / 2;
 
       const enthalpySpanTarget = (tempSpanTarget * zAxisVisualScale) / (xAxisVisualScale * AXIS_DATA_COVERAGE_TARGET);
-      let enthalpyCenter = historyEnthalpies.length ? (Math.min(...historyEnthalpies) + Math.max(...historyEnthalpies)) / 2 : enthalpySpanTarget / 2;
-      if (currentPoint && Number.isFinite(currentPoint.enthalpy)) enthalpyCenter = (enthalpyCenter + currentPoint.enthalpy) / 2;
+
+      let enthalpyCenter = historyEnthalpies.length
+        ? (Math.min(...historyEnthalpies) + Math.max(...historyEnthalpies)) / 2
+        : enthalpySpanTarget / 2;
+
+      if (currentPoint && Number.isFinite(currentPoint.enthalpy)) {
+        enthalpyCenter = (enthalpyCenter + currentPoint.enthalpy) / 2;
+      }
 
       let enthalpyMin = enthalpyCenter - enthalpySpanTarget / 2;
       let enthalpyMax = enthalpyCenter + enthalpySpanTarget / 2;
+
       if (enthalpyMin < 0) {
         enthalpyMax += -enthalpyMin;
         enthalpyMin = 0;
@@ -1226,10 +465,18 @@ Założenia i interpretacja działania:
           size: 3.5,
           color: historyPoints.map(p => p.rh),
           colorscale: "Viridis",
-          colorbar: { title: "RH [%]" }
+          colorbar: {
+            title: "RH [%]"
+          }
         },
-        line: { width: 6, color: "#4f8cff" },
-        hovertemplate: "Temperatura: %{customdata:.2f} °C<br>Czas: %{y}<br>Entalpia: %{z:.2f} kJ/kg<extra>Historia</extra>"
+        line: {
+          width: 6,
+          color: "#4f8cff"
+        },
+        hovertemplate:
+          "Temperatura: %{customdata:.2f} °C<br>" +
+          "Czas: %{y}<br>" +
+          "Entalpia: %{z:.2f} kJ/kg<extra>Historia</extra>"
       });
 
       if (currentPoint) {
@@ -1241,170 +488,129 @@ Założenia i interpretacja działania:
           y: [currentPoint.time],
           z: [currentPoint.enthalpy],
           customdata: [currentPoint.temp],
-          marker: { size: 9, color: "#f472b6", symbol: "diamond" },
+          marker: {
+            size: 9,
+            color: "#f472b6",
+            symbol: "diamond"
+          },
           text: ["Teraz"],
           textposition: "top center",
-          hovertemplate: "Temperatura: %{customdata:.2f} °C<br>Czas: %{y}<br>Entalpia: %{z:.2f} kJ/kg<extra>Aktualny punkt</extra>"
+          hovertemplate:
+            "Temperatura: %{customdata:.2f} °C<br>" +
+            "Czas: %{y}<br>" +
+            "Entalpia: %{z:.2f} kJ/kg<extra>Aktualny punkt</extra>"
         });
       }
 
       const layout = {
-        margin: { l: 0, r: 0, t: 6, b: 0 },
+        margin: { l: 0, r: 0, t: 0, b: 0 },
         paper_bgcolor: "rgba(0,0,0,0)",
         plot_bgcolor: "rgba(0,0,0,0)",
         font: { color: "#e5edf8" },
-        legend: { orientation: "h", y: 1.02, x: 0 },
+        legend: {
+          orientation: "h",
+          y: 1.02,
+          x: 0
+        },
         scene: {
           bgcolor: "rgba(0,0,0,0)",
           aspectmode: "manual",
-          aspectratio: { x: 1.45, y: 1.7, z: 1.1 },
-          camera: { eye: { x: 1.3, y: 1.45, z: 0.92 } },
-          xaxis: { title: "Temperatura sucha [°C]", gridcolor: "#243146", zerolinecolor: "#243146", backgroundcolor: "rgba(0,0,0,0)", range: [tempMax, tempMin] },
-          yaxis: { title: "Czas", gridcolor: "#243146", zerolinecolor: "#243146", backgroundcolor: "rgba(0,0,0,0)", type: "date" },
-          zaxis: { title: "Entalpia [kJ/kg suchego powietrza]", gridcolor: "#243146", zerolinecolor: "#243146", backgroundcolor: "rgba(0,0,0,0)", range: [enthalpyMin, enthalpyMax] }
+          aspectratio: {
+            x: 1.45,
+            y: 1.7,
+            z: 1.1
+          },
+          camera: {
+            eye: { x: 1.3, y: 1.45, z: 0.92 }
+          },
+          xaxis: {
+            title: "Temperatura sucha [°C]",
+            gridcolor: "#243146",
+            zerolinecolor: "#243146",
+            backgroundcolor: "rgba(0,0,0,0)",
+            range: [tempMax, tempMin]
+          },
+          yaxis: {
+            title: "Czas",
+            gridcolor: "#243146",
+            zerolinecolor: "#243146",
+            backgroundcolor: "rgba(0,0,0,0)",
+            type: "date"
+          },
+          zaxis: {
+            title: "Entalpia [kJ/kg suchego powietrza]",
+            gridcolor: "#243146",
+            zerolinecolor: "#243146",
+            backgroundcolor: "rgba(0,0,0,0)",
+            range: [enthalpyMin, enthalpyMax]
+          }
         },
         showlegend: true
       };
 
       Plotly.react("mollier3dChart", traces, layout, getCommonPlotConfig());
-      mollier3dInfoEl.textContent = `Zakres 3D: ${historyPoints.length} punktów | Średnie ciśnienie odniesienia: ${pressureRef.toFixed(1)} hPa | Aktualizacja: ${currentPoint?.time ? formatDateTime(currentPoint.time) : "—"}`;
-    }
 
-    async function renderDashboard() {
-      statusEl.textContent = "Pobieranie...";
-      try {
-        const range = getActiveRange();
-        const [sensorData, lublinCurrent, lublinHistory, lublinModel, sunDaily] = await Promise.all([
-          fetchThingSpeakRange(range.start, range.end),
-          fetchLublinCurrent(),
-          fetchLublinHistory(range.start, range.end),
-          fetchLublinModelLine(range.start, range.end),
-          fetchLublinSunDaily()
-        ]);
-
-        updateAnalysisPanel(sensorData, lublinHistory, lublinCurrent, sunDaily);
-        renderMainChart(sensorData, lublinHistory, lublinModel);
-        renderHistogram(sensorData.y);
-        renderMeteoChart(lublinHistory);
-        renderOverlayDaysChart(sensorData, lublinHistory);
-        renderMollierChart(lublinCurrent);
-
-        const history3dPoints = lublinHistory.x.map((time, i) => {
-          const temp = lublinHistory.temp[i];
-          const rh = lublinHistory.rh[i];
-          const pressure = lublinHistory.pressure[i];
-          const humidityRatio = calculateHumidityRatio(temp, rh, pressure);
-          const enthalpy = calculateEnthalpy(temp, humidityRatio);
-          return {
-            time,
-            temp,
-            rh,
-            pressure,
-            humidityRatio,
-            enthalpy
-          };
-        }).filter(p => Number.isFinite(p.temp) && Number.isFinite(p.enthalpy));
-
-        let current3dPoint = null;
-        if (lublinCurrent && Number.isFinite(lublinCurrent.currentTemp) && Number.isFinite(lublinCurrent.currentRH)) {
-          const currentHumidityRatio = calculateHumidityRatio(lublinCurrent.currentTemp, lublinCurrent.currentRH, lublinCurrent.currentPressure ?? 1013.25);
-          const currentEnthalpy = calculateEnthalpy(lublinCurrent.currentTemp, currentHumidityRatio);
-          if (Number.isFinite(currentEnthalpy)) {
-            current3dPoint = {
-              time: lublinCurrent.currentTime,
-              temp: lublinCurrent.currentTemp,
-              enthalpy: currentEnthalpy
-            };
-          }
-        }
-
-        renderMollier3D(history3dPoints, current3dPoint);
-        statusEl.textContent = `OK | od ${formatDateTime(range.start)} do ${formatDateTime(range.end)} | S: ${sensorData.y.length} | L: ${lublinHistory.temp.length}`;
-      } catch (error) {
-        console.error(error);
-        statusEl.textContent = "Błąd pobierania";
-        mollier3dInfoEl.textContent = "Nie udało się pobrać danych do wykresu Moliera 3D.";
-      }
-    }
-
-    function restartTimer() {
-      if (refreshTimer) clearInterval(refreshTimer);
-      if (!autoToggleEl.checked) return;
-      const intervalSec = parseInt(intervalSelectEl.value, 10);
-      refreshTimer = setInterval(renderDashboard, intervalSec * 1000);
-    }
-
-    function syncActiveRangeButtons() {
-      document.querySelectorAll(".btn[data-hours]").forEach(btn => {
-        const btnHours = parseInt(btn.dataset.hours, 10);
-        btn.classList.toggle("active", !useCustomRange && btnHours === currentRangeHours);
+      requestAnimationFrame(() => {
+        Plotly.Plots.resize("mollier3dChart");
       });
     }
 
-    function syncSliderLabel() {
-      sliderHoursValueEl.textContent = formatHoursLabel(currentRangeHours);
-      hoursSliderEl.value = currentRangeHours;
+    // =============================================================================
+    // GŁÓWNA AKTUALIZACJA
+    // =============================================================================
+    async function renderPage() {
+      statusEl.textContent = "Pobieranie...";
+
+      try {
+        const [history, current] = await Promise.all([
+          fetchLublinHistory(HISTORY_HOURS),
+          fetchLublinCurrent()
+        ]);
+
+        if (!history.length) {
+          throw new Error("Brak danych historycznych.");
+        }
+
+        const currentHumidityRatio = calculateHumidityRatio(current.temp, current.rh, current.pressure);
+        const currentEnthalpy = calculateEnthalpy(current.temp, currentHumidityRatio);
+        const currentDewPoint = calculateDewPoint(current.temp, current.rh);
+        const currentAH = calculateAbsoluteHumidity(current.temp, current.rh);
+
+        const currentPoint = (
+          Number.isFinite(current.temp) &&
+          Number.isFinite(currentEnthalpy) &&
+          current.time instanceof Date
+        )
+          ? {
+              time: current.time,
+              enthalpy: currentEnthalpy,
+              temp: current.temp
+            }
+          : null;
+
+        renderMollier3D(history, currentPoint);
+
+        infoEl.textContent =
+          `Zakres historii: ostatnie ${HISTORY_HOURS} h | ` +
+          `T: ${Number(current.temp).toFixed(2)} °C | ` +
+          `RH: ${Number(current.rh).toFixed(1)} % | ` +
+          `Ciśnienie: ${Number(current.pressure).toFixed(1)} hPa | ` +
+          `Punkt rosy: ${currentDewPoint != null ? currentDewPoint.toFixed(2) + " °C" : "—"} | ` +
+          `Wilgotność bezwzględna: ${currentAH != null ? currentAH.toFixed(2) + " g/m³" : "—"} | ` +
+          `Aktualizacja: ${current.time ? formatDateTime(current.time) : "—"}`;
+
+        statusEl.textContent = `OK | punktów: ${history.length}`;
+      } catch (error) {
+        console.error(error);
+        statusEl.textContent = "Błąd pobierania danych";
+        infoEl.textContent = "Nie udało się pobrać danych pogodowych ani narysować wykresu.";
+      }
     }
 
-    function applyQuickRange(hours) {
-      chartUiRevision++;
-      useCustomRange = false;
-      currentRangeHours = hours;
-      syncActiveRangeButtons();
-      syncSliderLabel();
-      const range = getActiveRange();
-      startDateEl.value = toLocalInputValue(range.start);
-      endDateEl.value = toLocalInputValue(range.end);
-      renderDashboard();
-    }
-
-    document.querySelectorAll(".btn[data-hours]").forEach(button => {
-      button.addEventListener("click", () => applyQuickRange(parseInt(button.dataset.hours, 10)));
-    });
-
-    hoursSliderEl.addEventListener("input", () => {
-      useCustomRange = false;
-      currentRangeHours = parseInt(hoursSliderEl.value, 10);
-      syncActiveRangeButtons();
-      syncSliderLabel();
-    });
-
-    hoursSliderEl.addEventListener("change", () => {
-      chartUiRevision++;
-      const range = getActiveRange();
-      startDateEl.value = toLocalInputValue(range.start);
-      endDateEl.value = toLocalInputValue(range.end);
-      renderDashboard();
-    });
-
-    applyRangeBtnEl.addEventListener("click", () => {
-      if (!startDateEl.value || !endDateEl.value) {
-        alert("Ustaw oba pola: od i do.");
-        return;
-      }
-      const start = new Date(startDateEl.value);
-      const end = new Date(endDateEl.value);
-      if (!(start < end)) {
-        alert("Data końcowa musi być późniejsza niż początkowa.");
-        return;
-      }
-      useCustomRange = true;
-      syncActiveRangeButtons();
-      chartUiRevision++;
-      renderDashboard();
-    });
-
-    resetRangeBtnEl.addEventListener("click", () => applyQuickRange(currentRangeHours));
-    autoToggleEl.addEventListener("change", restartTimer);
-    intervalSelectEl.addEventListener("change", restartTimer);
-    refreshBtnEl.addEventListener("click", () => renderDashboard());
-    overlayDaysSelectEl.addEventListener("change", () => {
-      chartUiRevision++;
-      renderDashboard();
-    });
-
-    applyQuickRange(1);
-    restartTimer();
+    // =============================================================================
+    // START
+    // =============================================================================
+    renderPage();
   </script>
 </body>
 </html>
