@@ -85,7 +85,8 @@ Założenia i interpretacja działania:
       box-shadow: 0 12px 28px var(--shadow);
       padding: 8px 10px;
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      grid-auto-rows: min-content;
       gap: 4px;
       overflow: hidden;
     }
@@ -132,6 +133,51 @@ Założenia i interpretacja działania:
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    .control-panel {
+      display: grid;
+      grid-auto-rows: min-content;
+      gap: 6px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 0 6px;
+      min-height: 28px;
+      flex-wrap: wrap;
+    }
+
+    .control-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .control-row input[type="range"] {
+      flex: 1 1 auto;
+      min-width: 180px;
+    }
+
+    .control-row button {
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #0f172a;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .control-row input[type="datetime-local"] {
+      width: 220px;
+      max-width: 100%;
+      height: auto;
+    }
   </style>
 </head>
 <body>
@@ -142,6 +188,20 @@ Założenia i interpretacja działania:
         <div class="subtitle">X = temperatura sucha, Y = czas, Z = entalpia</div>
       </div>
       <div id="status" class="status">Start...</div>
+    </div>
+
+    <div class="control-panel">
+      <div class="control-row">
+        <label for="historyHoursRange">Segment danych: <span id="historyHoursLabel">72 h (3.00 dni)</span></label>
+        <input id="historyHoursRange" type="range" min="1" max="168" step="1" value="72" />
+      </div>
+      <div class="control-row">
+        <label for="startDateInput">Start:</label>
+        <input id="startDateInput" type="datetime-local" />
+        <label for="endDateInput">Koniec:</label>
+        <input id="endDateInput" type="datetime-local" />
+        <button id="fetchRangeButton" type="button">Pobierz</button>
+      </div>
     </div>
 
     <div id="mollier3dChart"></div>
@@ -161,11 +221,155 @@ Założenia i interpretacja działania:
     // =============================================================================
     // STAŁE
     // =============================================================================
-    const HISTORY_HOURS = 72;
+    const DEFAULT_HISTORY_HOURS = 72;
     const RH_SURFACES = [20, 40, 60, 80, 100];
     const DEFAULT_TEMP_AXIS_MIN = -40;
     const DEFAULT_TEMP_AXIS_MAX = 10;
     const AXIS_DATA_COVERAGE_TARGET = 0.8;
+
+    let historyHours = DEFAULT_HISTORY_HOURS;
+    let cachedHistory = [];
+    let cachedCurrentPoint = null;
+    let cachedRange = null;
+    let selectedRangeDirty = false;
+    const historyHoursRangeEl = document.getElementById("historyHoursRange");
+    const historyHoursLabelEl = document.getElementById("historyHoursLabel");
+    const startDateInputEl = document.getElementById("startDateInput");
+    const endDateInputEl = document.getElementById("endDateInput");
+    const fetchRangeButtonEl = document.getElementById("fetchRangeButton");
+
+    function formatDays(hours) {
+      return (hours / 24).toFixed(2);
+    }
+
+    function updateHistoryHoursLabel(hours) {
+      historyHoursLabelEl.textContent = `${hours} h (${formatDays(hours)} dni)`;
+    }
+
+    function padNumber(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatDateTimeLocal(date) {
+      const local = new Date(date);
+      const year = local.getFullYear();
+      const month = padNumber(local.getMonth() + 1);
+      const day = padNumber(local.getDate());
+      const hours = padNumber(local.getHours());
+      const minutes = padNumber(local.getMinutes());
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    function getSelectedDateRange() {
+      const start = startDateInputEl.valueAsDate;
+      const end = endDateInputEl.valueAsDate;
+      if (!(start instanceof Date) || !(end instanceof Date) || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return null;
+      }
+      return start < end ? { start, end } : null;
+    }
+
+    function updateDateRangeInputs(end = new Date(), hoursBack = historyHours) {
+      const endDate = new Date(end);
+      const startDate = new Date(endDate.getTime() - hoursBack * 60 * 60 * 1000);
+      startDateInputEl.value = formatDateTimeLocal(startDate);
+      endDateInputEl.value = formatDateTimeLocal(endDate);
+    }
+
+    function rangesEqual(a, b) {
+      return Boolean(a && b && a.start.getTime() === b.start.getTime() && a.end.getTime() === b.end.getTime());
+    }
+
+    function updateSliderRangeForSelectedDates() {
+      const range = getSelectedDateRange();
+      if (!range) {
+        historyHoursRangeEl.min = 1;
+        historyHoursRangeEl.max = 168;
+        historyHours = Math.min(historyHours, 168);
+        historyHoursRangeEl.value = String(historyHours);
+        updateHistoryHoursLabel(historyHours);
+        selectedRangeDirty = Boolean(cachedRange);
+        return;
+      }
+
+      const totalHours = Math.max(Math.round((range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000)), 1);
+      historyHoursRangeEl.min = 1;
+      historyHoursRangeEl.max = String(totalHours);
+      if (historyHours > totalHours) {
+        historyHours = totalHours;
+        historyHoursRangeEl.value = String(historyHours);
+      }
+      updateHistoryHoursLabel(historyHours);
+
+      selectedRangeDirty = !rangesEqual(range, cachedRange);
+    }
+
+    function getCachedPlotHistory() {
+      if (!cachedHistory.length) {
+        return [];
+      }
+
+      const requestedHours = Number(historyHoursRangeEl.value);
+      const latestTime = cachedHistory[cachedHistory.length - 1].time;
+      const minTime = new Date(latestTime.getTime() - requestedHours * 60 * 60 * 1000);
+
+      return cachedHistory.filter(point => point.time >= minTime);
+    }
+
+    async function loadRangeHistory() {
+      const range = getSelectedDateRange();
+      if (!range) {
+        throw new Error("Nieprawidłowy zakres dat. Upewnij się, że wybrano poprawny start i koniec.");
+      }
+      if (range.start >= range.end) {
+        throw new Error("Start musi być wcześniej niż koniec.");
+      }
+
+      const history = await fetchLublinHistoryRange(range.start, range.end);
+      cachedHistory = history;
+      cachedRange = range;
+      return history;
+    }
+
+    async function renderFromCache() {
+      if (!cachedHistory.length || selectedRangeDirty) {
+        return;
+      }
+
+      const historySubset = getCachedPlotHistory();
+      renderMollier3D(historySubset, cachedCurrentPoint);
+      const totalHours = Math.round((cachedHistory[cachedHistory.length - 1].time.getTime() - cachedHistory[0].time.getTime()) / (60 * 60 * 1000));
+      const shownHours = Math.min(Number(historyHoursRangeEl.value), totalHours);
+      const rangeLabel = cachedRange
+        ? `${formatDateTime(cachedRange.start)} — ${formatDateTime(cachedRange.end)}`
+        : `ostatnie ${totalHours} h`;
+
+      infoEl.textContent =
+        `Wyświetlone: ostatnie ${shownHours} h z zakresu ${rangeLabel}`;
+    }
+
+    async function loadAndRenderSelectedRange() {
+      const history = await loadRangeHistory();
+      const current = await fetchLublinCurrent();
+      const currentHumidityRatio = calculateHumidityRatio(current.temp, current.rh, current.pressure);
+      const currentEnthalpy = calculateEnthalpy(current.temp, currentHumidityRatio);
+      const currentPoint = (
+        Number.isFinite(current.temp) &&
+        Number.isFinite(currentEnthalpy) &&
+        current.time instanceof Date
+      )
+        ? {
+            time: current.time,
+            enthalpy: currentEnthalpy,
+            temp: current.temp
+          }
+        : null;
+
+      cachedCurrentPoint = currentPoint;
+      selectedRangeDirty = false;
+      renderFromCache();
+      statusEl.textContent = `OK | pobranych punktów: ${history.length}`;
+    }
 
     // =============================================================================
     // FUNKCJE POMOCNICZE
@@ -270,8 +474,14 @@ Założenia i interpretacja działania:
       const now = new Date();
       const start = new Date(now.getTime() - hoursBack * 60 * 60 * 1000);
 
+      return fetchLublinHistoryRange(start, now);
+    }
+
+    async function fetchLublinHistoryRange(start, end) {
+      const geo = await getLublinGeo();
+
       const startDateApi = formatDateApi(start);
-      const endDateApi = formatDateApi(now);
+      const endDateApi = formatDateApi(end);
 
       const url =
         `https://archive-api.open-meteo.com/v1/archive?latitude=${geo.latitude}&longitude=${geo.longitude}&start_date=${startDateApi}&end_date=${endDateApi}&hourly=temperature_2m,relative_humidity_2m,pressure_msl&timezone=GMT`;
@@ -286,7 +496,7 @@ Założenia i interpretacja działania:
 
       const out = [];
       const startMs = start.getTime();
-      const endMs = now.getTime();
+      const endMs = end.getTime();
 
       for (let i = 0; i < rawTimes.length; i++) {
         const time = new Date(`${rawTimes[i]}Z`);
@@ -362,6 +572,7 @@ Założenia i interpretacja działania:
         customdata: xMatrix,
         opacity: rhValue === 100 ? 0.36 : 0.16,
         showscale: false,
+        showlegend: true,
         hovertemplate:
           "Temperatura: %{customdata:.2f} °C<br>" +
           "Czas: %{y}<br>" +
@@ -395,6 +606,7 @@ Założenia i interpretacja działania:
       };
     }
 
+
     function renderMollier3D(historyPoints, currentPoint) {
       const traces = [];
 
@@ -422,35 +634,59 @@ Założenia i interpretacja działania:
       const tempDataMax = historyTemps.length ? Math.max(...historyTemps) : DEFAULT_TEMP_AXIS_MAX;
       const tempDataSpan = Math.max(tempDataMax - tempDataMin, 1);
       const tempSpanTarget = tempDataSpan / AXIS_DATA_COVERAGE_TARGET;
-
-      let tempCenter = (tempDataMin + tempDataMax) / 2;
-      if (currentPoint && Number.isFinite(currentPoint.temp)) {
-        tempCenter = (tempCenter + currentPoint.temp) / 2;
-      }
-
-      let tempMin = tempCenter - tempSpanTarget / 2;
-      let tempMax = tempCenter + tempSpanTarget / 2;
+      const currentTemp = currentPoint && Number.isFinite(currentPoint.temp) ? currentPoint.temp : null;
+      const tempTargetMin = currentTemp !== null ? Math.min(tempDataMin, currentTemp) : tempDataMin;
+      const tempTargetMax = currentTemp !== null ? Math.max(tempDataMax, currentTemp) : tempDataMax;
+      const tempMargin = Math.max((tempTargetMax - tempTargetMin) * 0.08, 1);
+      const tempSpan = Math.max(tempSpanTarget, tempTargetMax - tempTargetMin + 2 * tempMargin);
+      const tempCenter = (tempTargetMin + tempTargetMax) / 2;
+      let tempMin = tempCenter - tempSpan / 2;
+      let tempMax = tempCenter + tempSpan / 2;
 
       const enthalpySpanTarget = (tempSpanTarget * zAxisVisualScale) / (xAxisVisualScale * AXIS_DATA_COVERAGE_TARGET);
 
-      let enthalpyCenter = historyEnthalpies.length
-        ? (Math.min(...historyEnthalpies) + Math.max(...historyEnthalpies)) / 2
-        : enthalpySpanTarget / 2;
+      const enthalpyDataMin = historyEnthalpies.length ? Math.min(...historyEnthalpies) : 0;
+      const enthalpyDataMax = historyEnthalpies.length ? Math.max(...historyEnthalpies) : enthalpySpanTarget;
+      const currentEnthalpy = currentPoint && Number.isFinite(currentPoint.enthalpy)
+        ? currentPoint.enthalpy
+        : null;
 
-      if (currentPoint && Number.isFinite(currentPoint.enthalpy)) {
-        enthalpyCenter = (enthalpyCenter + currentPoint.enthalpy) / 2;
-      }
+      const enthalpyTargetMin = currentEnthalpy !== null ? Math.min(enthalpyDataMin, currentEnthalpy) : enthalpyDataMin;
+      const enthalpyTargetMax = currentEnthalpy !== null ? Math.max(enthalpyDataMax, currentEnthalpy) : enthalpyDataMax;
+      const enthalpySpan = Math.max(enthalpyTargetMax - enthalpyTargetMin, 1);
+      const enthalpyMargin = Math.max(enthalpySpan * 0.15, 1);
 
-      let enthalpyMin = enthalpyCenter - enthalpySpanTarget / 2;
-      let enthalpyMax = enthalpyCenter + enthalpySpanTarget / 2;
+      let enthalpyMin = enthalpyTargetMin - enthalpyMargin;
+      let enthalpyMax = enthalpyTargetMax + enthalpyMargin;
 
       if (enthalpyMin < 0) {
         enthalpyMax += -enthalpyMin;
         enthalpyMin = 0;
       }
 
+      const labelTime = timeValues.length ? timeValues[timeValues.length - 1] : new Date();
+      const labelTemp = tempMax;
+
       RH_SURFACES.forEach(rhValue => {
         traces.push(buildRhSurfaceTrace(rhValue, timeValues, pressureRef));
+      });
+
+      const surfaceLabels = RH_SURFACES.map(rhValue => {
+        const humidityRatio = calculateHumidityRatio(labelTemp, rhValue, pressureRef);
+        const enthalpyLabel = calculateEnthalpy(labelTemp, humidityRatio);
+
+        return {
+          x: labelTemp,
+          y: labelTime,
+          z: Number.isFinite(enthalpyLabel) ? enthalpyLabel : enthalpyMax,
+          text: `RH ${rhValue}%`,
+          showarrow: false,
+          xanchor: "left",
+          yanchor: "bottom",
+          font: { color: "#e5edf8", size: 12 },
+          bgcolor: "rgba(15, 23, 42, 0.75)",
+          opacity: 0.9
+        };
       });
 
       traces.push({
@@ -512,17 +748,20 @@ Założenia i interpretacja działania:
           y: 1.02,
           x: 0
         },
+        uirevision: "mollier3d",
         scene: {
           bgcolor: "rgba(0,0,0,0)",
           aspectmode: "manual",
           aspectratio: {
             x: 1.45,
             y: 1.7,
-            z: 1.1
+            z: 1.7
           },
+          uirevision: "mollier3d",
           camera: {
             eye: { x: 1.3, y: 1.45, z: 0.92 }
           },
+          annotations: surfaceLabels,
           xaxis: {
             title: "Temperatura sucha [°C]",
             gridcolor: "#243146",
@@ -558,14 +797,18 @@ Założenia i interpretacja działania:
     // =============================================================================
     // GŁÓWNA AKTUALIZACJA
     // =============================================================================
-    async function renderPage() {
+    async function renderPage(hours = historyHours) {
       statusEl.textContent = "Pobieranie...";
 
       try {
-        const [history, current] = await Promise.all([
-          fetchLublinHistory(HISTORY_HOURS),
-          fetchLublinCurrent()
-        ]);
+        if (cachedHistory.length) {
+          renderFromCache();
+          statusEl.textContent = `OK | punktów: ${cachedHistory.length}`;
+          return;
+        }
+
+        const history = await fetchLublinHistory(hours);
+        const current = await fetchLublinCurrent();
 
         if (!history.length) {
           throw new Error("Brak danych historycznych.");
@@ -588,10 +831,13 @@ Założenia i interpretacja działania:
             }
           : null;
 
+        cachedHistory = history;
+        cachedCurrentPoint = currentPoint;
+        cachedRange = null;
         renderMollier3D(history, currentPoint);
 
         infoEl.textContent =
-          `Zakres historii: ostatnie ${HISTORY_HOURS} h | ` +
+          `Zakres historii: ostatnie ${hours} h | ` +
           `T: ${Number(current.temp).toFixed(2)} °C | ` +
           `RH: ${Number(current.rh).toFixed(1)} % | ` +
           `Ciśnienie: ${Number(current.pressure).toFixed(1)} hPa | ` +
@@ -607,9 +853,43 @@ Założenia i interpretacja działania:
       }
     }
 
+    historyHoursRangeEl.addEventListener("input", () => {
+      historyHours = Number(historyHoursRangeEl.value);
+      updateHistoryHoursLabel(historyHours);
+      if (cachedHistory.length && !selectedRangeDirty) {
+        renderFromCache();
+      } else {
+        infoEl.textContent = "Wybierz zakres dat i kliknij Pobierz, aby załadować dane.";
+      }
+    });
+
+    const handleDateRangeInput = () => {
+      updateSliderRangeForSelectedDates();
+      if (selectedRangeDirty) {
+        infoEl.textContent = "Nowy zakres dat wymaga pobrania. Kliknij Pobierz.";
+      }
+    };
+
+    startDateInputEl.addEventListener("input", handleDateRangeInput);
+    endDateInputEl.addEventListener("input", handleDateRangeInput);
+
+    fetchRangeButtonEl.addEventListener("click", async () => {
+      statusEl.textContent = "Pobieranie...";
+      try {
+        await loadAndRenderSelectedRange();
+      } catch (error) {
+        console.error(error);
+        statusEl.textContent = "Błąd pobierania danych";
+        infoEl.textContent = error.message || "Nie udało się pobrać zakresu danych.";
+      }
+    });
+
     // =============================================================================
     // START
     // =============================================================================
+    updateHistoryHoursLabel(historyHours);
+    updateDateRangeInputs();
+    updateSliderRangeForSelectedDates();
     renderPage();
   </script>
 </body>
