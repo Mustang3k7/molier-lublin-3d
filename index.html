@@ -350,4 +350,599 @@ Założenia i interpretacja działania:
     // =============================================================================
     // FORMATOWANIE I DATY
     // =============================================================================
-    function
+    function formatDays(hours) {
+      return (hours / 24).toFixed(2);
+    }
+
+    function updateHistoryHoursLabel(hours) {
+      historyHoursLabelEl.textContent = `${hours} h (${formatDays(hours)} dni)`;
+    }
+
+    function padNumber(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatDateTimeLocal(date) {
+      const local = new Date(date);
+      const year = local.getFullYear();
+      const month = padNumber(local.getMonth() + 1);
+      const day = padNumber(local.getDate());
+      const hours = padNumber(local.getHours());
+      const minutes = padNumber(local.getMinutes());
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    function parseDateTimeLocalValue(value) {
+      if (!value || typeof value !== "string") {
+        return null;
+      }
+
+      const normalized = value.trim().replace(" ", "T");
+      const parsed = new Date(normalized);
+
+      if (Number.isNaN(parsed.getTime())) {
+        return null;
+      }
+
+      return parsed;
+    }
+
+    function getSelectedDateRange() {
+      const start = parseDateTimeLocalValue(startDateInputEl.value);
+      const end = parseDateTimeLocalValue(endDateInputEl.value);
+
+      if (!(start instanceof Date) || !(end instanceof Date)) {
+        return null;
+      }
+
+      return start < end ? { start, end } : null;
+    }
+
+    function updateDateRangeInputs(end = new Date(), hoursBack = historyHours) {
+      const endDate = new Date(end);
+      const startDate = new Date(endDate.getTime() - hoursBack * 60 * 60 * 1000);
+
+      startDateInputEl.value = formatDateTimeLocal(startDate);
+      endDateInputEl.value = formatDateTimeLocal(endDate);
+    }
+
+    function rangesEqual(a, b) {
+      return Boolean(
+        a &&
+        b &&
+        a.start.getTime() === b.start.getTime() &&
+        a.end.getTime() === b.end.getTime()
+      );
+    }
+
+    function updateSliderRangeForSelectedDates() {
+      const range = getSelectedDateRange();
+
+      if (!range) {
+        historyHoursRangeEl.min = "1";
+        historyHoursRangeEl.max = "168";
+        historyHours = Math.min(historyHours, 168);
+        historyHoursRangeEl.value = String(historyHours);
+        updateHistoryHoursLabel(historyHours);
+        selectedRangeDirty = Boolean(cachedRange);
+        return;
+      }
+
+      const totalHours = Math.max(
+        Math.round((range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000)),
+        1
+      );
+
+      historyHoursRangeEl.min = "1";
+      historyHoursRangeEl.max = String(totalHours);
+
+      if (historyHours > totalHours) {
+        historyHours = totalHours;
+        historyHoursRangeEl.value = String(historyHours);
+      }
+
+      updateHistoryHoursLabel(historyHours);
+      selectedRangeDirty = !rangesEqual(range, cachedRange);
+    }
+
+    function formatDateTime(dateOrString) {
+      const date = dateOrString instanceof Date ? dateOrString : new Date(dateOrString);
+      return date.toLocaleString("pl-PL");
+    }
+
+    function formatDateApi(date) {
+      const y = date.getUTCFullYear();
+      const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(date.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    // =============================================================================
+    // OBLICZENIA PSYCHROMETRYCZNE
+    // =============================================================================
+    function calculateHumidityRatio(tempC, rhPercent, pressureHpa = 1013.25) {
+      if (!Number.isFinite(tempC) || !Number.isFinite(rhPercent) || !Number.isFinite(pressureHpa)) {
+        return null;
+      }
+
+      const pws = 6.112 * Math.exp((17.67 * tempC) / (tempC + 243.5));
+      const pw = (rhPercent / 100.0) * pws;
+
+      if (pressureHpa <= pw) {
+        return null;
+      }
+
+      return 0.62198 * pw / (pressureHpa - pw);
+    }
+
+    function calculateEnthalpy(tempC, humidityRatioKgKg) {
+      if (!Number.isFinite(tempC) || !Number.isFinite(humidityRatioKgKg)) {
+        return null;
+      }
+
+      return 1.006 * tempC + humidityRatioKgKg * (2501 + 1.86 * tempC);
+    }
+
+    // =============================================================================
+    // OPEN-METEO
+    // =============================================================================
+    let lublinGeo = null;
+
+    async function safeFetchJson(url) {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Błąd HTTP ${response.status} podczas pobierania danych.`);
+      }
+
+      return response.json();
+    }
+
+    async function getLublinGeo() {
+      if (lublinGeo) {
+        return lublinGeo;
+      }
+
+      const url = "https://geocoding-api.open-meteo.com/v1/search?name=Lublin&count=1&language=pl&format=json";
+      const data = await safeFetchJson(url);
+
+      if (!data.results || !data.results.length) {
+        throw new Error("Nie znaleziono lokalizacji Lublin.");
+      }
+
+      lublinGeo = {
+        latitude: data.results[0].latitude,
+        longitude: data.results[0].longitude
+      };
+
+      return lublinGeo;
+    }
+
+    async function fetchLublinCurrent() {
+      const geo = await getLublinGeo();
+
+      const url =
+        `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,relative_humidity_2m,pressure_msl&timezone=GMT`;
+
+      const data = await safeFetchJson(url);
+
+      return {
+        temp: data?.current?.temperature_2m ?? null,
+        rh: data?.current?.relative_humidity_2m ?? null,
+        pressure: data?.current?.pressure_msl ?? 1013.25,
+        time: data?.current?.time ? new Date(`${data.current.time}Z`) : null
+      };
+    }
+
+    async function fetchLublinHistoryRange(start, end) {
+      const geo = await getLublinGeo();
+
+      const startDateApi = formatDateApi(start);
+      const endDateApi = formatDateApi(end);
+
+      const url =
+        `https://archive-api.open-meteo.com/v1/archive?latitude=${geo.latitude}&longitude=${geo.longitude}&start_date=${startDateApi}&end_date=${endDateApi}&hourly=temperature_2m,relative_humidity_2m,pressure_msl&timezone=GMT`;
+
+      const data = await safeFetchJson(url);
+
+      const rawTimes = data?.hourly?.time ?? [];
+      const rawTemps = data?.hourly?.temperature_2m ?? [];
+      const rawRHs = data?.hourly?.relative_humidity_2m ?? [];
+      const rawPressures = data?.hourly?.pressure_msl ?? [];
+
+      if (!rawTimes.length) {
+        throw new Error("Nie udało się pobrać danych historycznych dla wybranego zakresu.");
+      }
+
+      const out = [];
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+
+      for (let i = 0; i < rawTimes.length; i++) {
+        const time = new Date(`${rawTimes[i]}Z`);
+        const ms = time.getTime();
+
+        if (ms < startMs || ms > endMs) {
+          continue;
+        }
+
+        const temp = rawTemps[i];
+        const rh = rawRHs[i];
+        const pressure = rawPressures[i];
+
+        const humidityRatio = calculateHumidityRatio(temp, rh, pressure);
+        const enthalpy = calculateEnthalpy(temp, humidityRatio);
+
+        if (!Number.isFinite(temp) || !Number.isFinite(enthalpy)) {
+          continue;
+        }
+
+        out.push({
+          time,
+          temp,
+          rh,
+          pressure,
+          humidityRatio,
+          enthalpy
+        });
+      }
+
+      if (!out.length) {
+        throw new Error("Brak poprawnych punktów danych w wybranym zakresie.");
+      }
+
+      return out;
+    }
+
+    // =============================================================================
+    // DANE Z PODRĘCZNEJ PAMIĘCI
+    // =============================================================================
+    function getCachedPlotHistory() {
+      if (!cachedHistory.length) {
+        return [];
+      }
+
+      const requestedHours = Number(historyHoursRangeEl.value);
+      const latestTime = cachedHistory[cachedHistory.length - 1].time;
+      const minTime = new Date(latestTime.getTime() - requestedHours * 60 * 60 * 1000);
+
+      return cachedHistory.filter(point => point.time >= minTime);
+    }
+
+    async function loadRangeHistory() {
+      const range = getSelectedDateRange();
+
+      if (!range) {
+        throw new Error("Nieprawidłowy zakres dat. Upewnij się, że wybrano poprawny start i koniec.");
+      }
+
+      if (range.start >= range.end) {
+        throw new Error("Start musi być wcześniejszy niż koniec.");
+      }
+
+      const history = await fetchLublinHistoryRange(range.start, range.end);
+      cachedHistory = history;
+      cachedRange = range;
+
+      return history;
+    }
+
+    async function renderFromCache() {
+      if (!cachedHistory.length || selectedRangeDirty) {
+        return;
+      }
+
+      const historySubset = getCachedPlotHistory();
+      renderMollier3D(historySubset, cachedCurrentPoint);
+
+      const totalHours = Math.max(
+        1,
+        Math.round(
+          (cachedHistory[cachedHistory.length - 1].time.getTime() - cachedHistory[0].time.getTime()) /
+          (60 * 60 * 1000)
+        )
+      );
+
+      const shownHours = Math.min(Number(historyHoursRangeEl.value), totalHours);
+      const rangeLabel = cachedRange
+        ? `${formatDateTime(cachedRange.start)} — ${formatDateTime(cachedRange.end)}`
+        : `ostatnie ${totalHours} h`;
+
+      infoEl.textContent = `Wyświetlone: ostatnie ${shownHours} h z zakresu ${rangeLabel}`;
+    }
+
+    async function loadAndRenderSelectedRange() {
+      const history = await loadRangeHistory();
+      const current = await fetchLublinCurrent();
+
+      const currentHumidityRatio = calculateHumidityRatio(current.temp, current.rh, current.pressure);
+      const currentEnthalpy = calculateEnthalpy(current.temp, currentHumidityRatio);
+
+      const currentPoint = (
+        Number.isFinite(current.temp) &&
+        Number.isFinite(currentEnthalpy) &&
+        current.time instanceof Date
+      )
+        ? {
+            time: current.time,
+            enthalpy: currentEnthalpy,
+            temp: current.temp
+          }
+        : null;
+
+      cachedCurrentPoint = currentPoint;
+      selectedRangeDirty = false;
+
+      await renderFromCache();
+      statusEl.textContent = `OK | pobranych punktów: ${history.length}`;
+    }
+
+    // =============================================================================
+    // BUDOWA POWIERZCHNI RH
+    // =============================================================================
+    function buildRhSurfaceTrace(rhValue, timeValues, pressureRef) {
+      const tempAxis = [];
+      for (let t = DEFAULT_TEMP_AXIS_MIN; t <= DEFAULT_TEMP_AXIS_MAX; t += 1) {
+        tempAxis.push(t);
+      }
+
+      const xMatrix = [];
+      const yMatrix = [];
+      const zMatrix = [];
+
+      for (let i = 0; i < timeValues.length; i++) {
+        const rowX = [];
+        const rowY = [];
+        const rowZ = [];
+
+        for (let j = 0; j < tempAxis.length; j++) {
+          const temp = tempAxis[j];
+          const w = calculateHumidityRatio(temp, rhValue, pressureRef);
+          const h = calculateEnthalpy(temp, w);
+
+          rowX.push(temp);
+          rowY.push(timeValues[i]);
+          rowZ.push(Number.isFinite(h) ? h : null);
+        }
+
+        xMatrix.push(rowX);
+        yMatrix.push(rowY);
+        zMatrix.push(rowZ);
+      }
+
+      return {
+        type: "surface",
+        name: `RH ${rhValue}%`,
+        x: xMatrix,
+        y: yMatrix,
+        z: zMatrix,
+        customdata: xMatrix,
+        opacity: rhValue === 100 ? 0.36 : 0.16,
+        showscale: false,
+        showlegend: true,
+        hovertemplate:
+          "Temperatura: %{customdata:.2f} °C<br>" +
+          "Czas: %{y}<br>" +
+          "Entalpia: %{z:.2f} kJ/kg<extra>RH " + rhValue + "%</extra>",
+        contours: {
+          x: { show: false },
+          y: { show: false },
+          z: { show: false }
+        },
+        colorscale: rhValue === 100
+          ? [
+              [0, "#f59e0b"],
+              [1, "#f59e0b"]
+            ]
+          : [
+              [0, "#2f3f5f"],
+              [1, "#2f3f5f"]
+            ]
+      };
+    }
+
+    // =============================================================================
+    // WYKRES
+    // =============================================================================
+    function getCommonPlotConfig() {
+      return {
+        responsive: true,
+        displayModeBar: true,
+        scrollZoom: true,
+        displaylogo: false
+      };
+    }
+
+    function cloneSceneCamera(camera) {
+      if (!camera) {
+        return null;
+      }
+
+      return {
+        eye: camera.eye ? { ...camera.eye } : { ...DEFAULT_SCENE_CAMERA.eye },
+        center: camera.center ? { ...camera.center } : { ...DEFAULT_SCENE_CAMERA.center },
+        up: camera.up ? { ...camera.up } : { ...DEFAULT_SCENE_CAMERA.up }
+      };
+    }
+
+    function getCurrentSceneCamera() {
+      const chart = document.getElementById("mollier3dChart");
+      const liveCamera = chart && chart._fullLayout && chart._fullLayout.scene
+        ? chart._fullLayout.scene.camera
+        : null;
+
+      return cloneSceneCamera(liveCamera) || cloneSceneCamera(DEFAULT_SCENE_CAMERA);
+    }
+
+    function renderMollier3D(historyPoints, currentPoint) {
+      const currentCamera = getCurrentSceneCamera();
+      const traces = [];
+
+      if (historyPoints.length > 0) {
+        const timeValues = historyPoints.map(point => point.time.toISOString());
+        const pressureRef = historyPoints.find(point => Number.isFinite(point.pressure))?.pressure ?? 1013.25;
+
+        for (const rhValue of RH_SURFACES) {
+          traces.push(buildRhSurfaceTrace(rhValue, timeValues, pressureRef));
+        }
+
+        traces.push({
+          type: "scatter3d",
+          mode: "lines+markers",
+          name: "Trajektoria Lublin",
+          x: historyPoints.map(point => point.temp),
+          y: historyPoints.map(point => point.time.toISOString()),
+          z: historyPoints.map(point => point.enthalpy),
+          line: {
+            width: 6,
+            color: "#4f8cff"
+          },
+          marker: {
+            size: 3,
+            color: "#93c5fd"
+          },
+          hovertemplate:
+            "Temperatura: %{x:.2f} °C<br>" +
+            "Czas: %{y}<br>" +
+            "Entalpia: %{z:.2f} kJ/kg<extra>Lublin</extra>"
+        });
+      }
+
+      if (currentPoint) {
+        traces.push({
+          type: "scatter3d",
+          mode: "markers",
+          name: "Aktualny punkt",
+          x: [currentPoint.temp],
+          y: [currentPoint.time.toISOString()],
+          z: [currentPoint.enthalpy],
+          marker: {
+            size: 7,
+            color: "#f472b6",
+            symbol: "diamond"
+          },
+          hovertemplate:
+            "Temperatura: %{x:.2f} °C<br>" +
+            "Czas: %{y}<br>" +
+            "Entalpia: %{z:.2f} kJ/kg<extra>Aktualnie</extra>"
+        });
+      }
+
+      const enthalpyValues = historyPoints
+        .map(point => point.enthalpy)
+        .filter(value => Number.isFinite(value));
+
+      if (currentPoint && Number.isFinite(currentPoint.enthalpy)) {
+        enthalpyValues.push(currentPoint.enthalpy);
+      }
+
+      const minEnthalpyData = enthalpyValues.length ? Math.min(...enthalpyValues) : -20;
+      const maxEnthalpyData = enthalpyValues.length ? Math.max(...enthalpyValues) : 80;
+      const enthalpyPadding = Math.max((maxEnthalpyData - minEnthalpyData) * 0.12, 6);
+
+      const layout = {
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(0,0,0,0)",
+        legend: {
+          font: { color: "#e5edf8", size: 11 },
+          bgcolor: "rgba(15,23,42,0.55)"
+        },
+        scene: {
+          camera: currentCamera,
+          bgcolor: "rgba(0,0,0,0)",
+          aspectmode: "manual",
+          aspectratio: {
+            x: 1.05,
+            y: 1.05,
+            z: 0.82
+          },
+          xaxis: {
+            title: "Temperatura sucha [°C]",
+            color: "#cbd5e1",
+            backgroundcolor: "rgba(15, 23, 42, 0.20)",
+            gridcolor: "rgba(148, 163, 184, 0.20)",
+            zerolinecolor: "rgba(148, 163, 184, 0.25)",
+            range: [DEFAULT_TEMP_AXIS_MAX, DEFAULT_TEMP_AXIS_MIN]
+          },
+          yaxis: {
+            title: "Czas",
+            color: "#cbd5e1",
+            backgroundcolor: "rgba(15, 23, 42, 0.20)",
+            gridcolor: "rgba(148, 163, 184, 0.20)",
+            zerolinecolor: "rgba(148, 163, 184, 0.25)"
+          },
+          zaxis: {
+            title: "Entalpia [kJ/kg]",
+            color: "#cbd5e1",
+            backgroundcolor: "rgba(15, 23, 42, 0.20)",
+            gridcolor: "rgba(148, 163, 184, 0.20)",
+            zerolinecolor: "rgba(148, 163, 184, 0.25)",
+            range: [minEnthalpyData - enthalpyPadding, maxEnthalpyData + enthalpyPadding]
+          }
+        }
+      };
+
+      return Plotly.react("mollier3dChart", traces, layout, getCommonPlotConfig())
+        .then(() => {
+          updateChartSquareSize();
+        });
+    }
+
+    // =============================================================================
+    // ZDARZENIA
+    // =============================================================================
+    historyHoursRangeEl.addEventListener("input", async () => {
+      historyHours = Number(historyHoursRangeEl.value);
+      updateHistoryHoursLabel(historyHours);
+      await renderFromCache();
+    });
+
+    startDateInputEl.addEventListener("change", () => {
+      updateSliderRangeForSelectedDates();
+    });
+
+    endDateInputEl.addEventListener("change", () => {
+      updateSliderRangeForSelectedDates();
+    });
+
+    fetchRangeButtonEl.addEventListener("click", async () => {
+      try {
+        statusEl.textContent = "Pobieranie...";
+        infoEl.textContent = "Ładowanie danych pogodowych...";
+        await loadAndRenderSelectedRange();
+      } catch (error) {
+        statusEl.textContent = "Błąd";
+        infoEl.textContent = error instanceof Error ? error.message : "Nieznany błąd.";
+        console.error("Błąd po kliknięciu Pobierz:", error);
+      }
+    });
+
+    window.addEventListener("resize", updateChartSquareSize);
+
+    // =============================================================================
+    // START
+    // =============================================================================
+    async function init() {
+      try {
+        updateHistoryHoursLabel(historyHours);
+        updateDateRangeInputs(new Date(), historyHours);
+        updateSliderRangeForSelectedDates();
+        updateChartSquareSize();
+
+        statusEl.textContent = "Pobieranie danych...";
+        infoEl.textContent = "Ładowanie danych pogodowych...";
+        await loadAndRenderSelectedRange();
+      } catch (error) {
+        statusEl.textContent = "Błąd";
+        infoEl.textContent = error instanceof Error
+          ? `Błąd inicjalizacji: ${error.message}`
+          : "Nieznany błąd inicjalizacji.";
+        console.error("Błąd init():", error);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
